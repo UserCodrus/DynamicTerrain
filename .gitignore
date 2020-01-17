@@ -3,6 +3,12 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# Unreal project files
+Binaries/
+Intermediate/
+Resources/
+Content/
+
 # User-specific files
 *.rsuser
 *.suo
