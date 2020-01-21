@@ -15,9 +15,13 @@
   "Installed": false,
   "Modules": [
     {
-      "Name": "DynamicTerrain",
-      "Type": "Runtime",
-      "LoadingPhase": "Default"
+        "Name": "DynamicTerrain",
+        "Type": "Runtime",
+        "LoadingPhase": "Default"
+    },
+    {
+        "Name": "DynamicTerrainEditor",
+        "Type": "Editor"
     }
   ],
   "Plugins": [
