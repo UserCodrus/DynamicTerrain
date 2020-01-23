@@ -6,8 +6,6 @@
 # Unreal project files
 Binaries/
 Intermediate/
-Resources/
-Content/
 
 # User-specific files
 *.rsuser
