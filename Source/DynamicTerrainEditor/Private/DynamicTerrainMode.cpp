@@ -1,3 +1,3 @@
-#include "DynamicTerrainEditor/Public/DynamicTerrainMode.h"
+#include "DynamicTerrainMode.h"
 
 const FEditorModeID FDynamicTerrainMode::DynamicTerrainModeID = TEXT("DynamicTerrainModeID");

@@ -1,5 +1,5 @@
-#include "DynamicTerrainEditor/Public/DynamicTerrainEditor.h"
-#include "DynamicTerrainEditor/Public/DynamicTerrainMode.h"
+#include "DynamicTerrainEditor.h"
+#include "DynamicTerrainMode.h"
 
 IMPLEMENT_MODULE(FDynamicTerrainEditorModule, DynamicTerrainEditor);
 
