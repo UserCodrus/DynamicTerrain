@@ -69,8 +69,8 @@ uint32 ComponentBuilder::Run()
 
 			// The number of polygons in each component
 			uint16 polygons = component_width - 1;
-			int32 heightmap_x = heightmap->GetWidthX();
-			int32 heightmap_y = heightmap->GetWidthY();
+			int32 heightmap_x = heightmap->GetWidthX() - 2;
+			int32 heightmap_y = heightmap->GetWidthY() - 2;
 
 			// The x and y coordinates of the current component in the world
 			float world_x = (float)(heightmap_x - 1) / 2.0f - polygons * component_x;
@@ -86,7 +86,7 @@ uint32 ComponentBuilder::Run()
 				for (int32 x = 0; x < component_width; ++x)
 				{
 					// Vertices
-					data.vertices.Add(FVector(x - world_x, world_y - y, heightmap->GetHeight(map_x + x, map_y + y) * total_height));
+					data.vertices.Add(FVector(x - world_x, world_y - y, heightmap->GetHeight(map_x + x + 1, map_y + y + 1) * total_height));
 
 					// Normals
 					data.normals.Add((*normalmap)[(map_y + y) * heightmap_x + (map_x + x)]);

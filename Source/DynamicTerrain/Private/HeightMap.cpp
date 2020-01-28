@@ -1,6 +1,8 @@
 #include "HeightMap.h"
 #include "Algorithms.h"
 
+#include "ProceduralMeshComponent.h"
+
 #include <chrono>
 
 /// Blueprint Functions ///
@@ -32,8 +34,10 @@ float UHeightMap::BPGetHeight(int32 X, int32 Y) const
 void UHeightMap::CalculateNormalsAndTangents(TArray<FVector>& Normals, TArray<FProcMeshTangent>& Tangents) const
 {
 	// Resize the normal and tangent arrays
-	Normals.SetNum(MapData.Num());
-	Tangents.SetNum(MapData.Num());
+	int32 width_x = WidthX - 2;
+	int32 width_y = WidthY - 2;
+	Normals.SetNum(width_x * width_y);
+	Tangents.SetNum(width_x * width_y);
 
 	// Calculate normals
 	for (int32 y = 1; y < WidthY - 1; ++y)
@@ -52,141 +56,10 @@ void UHeightMap::CalculateNormalsAndTangents(TArray<FVector>& Normals, TArray<FP
 			// Calculate the cross product of the two normals
 			vx.Normalize();
 			vy.Normalize();
-			Normals[y * WidthX + x] = FVector::CrossProduct(vx, vy);
-			Tangents[y * WidthX + x] = FProcMeshTangent(vx.X, vx.Y, vx.Z);
+			Normals[(y - 1) * width_x + (x - 1)] = FVector::CrossProduct(vx, vy);
+			Tangents[(y - 1) * width_y + (x - 1)] = FProcMeshTangent(vx.X, vx.Y, vx.Z);
 		}
 	}
-
-	// Calculate normals on the edges
-	for (int32 x = 1; x < WidthX - 1; ++x)
-	{
-		// Top edge
-		float s01 = GetHeight(x - 1, 0) * MaxHeight;
-		float s21 = GetHeight(x + 1, 0) * MaxHeight;
-		float s10 = GetHeight(x, 0) * MaxHeight;
-		float s12 = GetHeight(x, 1) * MaxHeight;
-
-		FVector vx(2.0f, 0, s21 - s01);
-		FVector vy(0, 2.0f, s10 - s12);
-
-		vx.Normalize();
-		vy.Normalize();
-		Normals[x] = FVector::CrossProduct(vx, vy);
-		Tangents[x] = FProcMeshTangent(vx.X, vx.Y, vx.Z);
-
-		// Bottom edge
-		int32 y = WidthY - 1;
-		s01 = GetHeight(x - 1, y) * MaxHeight;
-		s21 = GetHeight(x + 1, y) * MaxHeight;
-		s10 = GetHeight(x, y - 1) * MaxHeight;
-		s12 = GetHeight(x, y) * MaxHeight;
-
-		vx = { 2.0f, 0, s21 - s01 };
-		vy = { 0, 2.0f, s10 - s12 };
-
-		vx.Normalize();
-		vy.Normalize();
-		Normals[y * WidthX + x] = FVector::CrossProduct(vx, vy);
-		Tangents[y * WidthX + x] = FProcMeshTangent(vx.X, vx.Y, vx.Z);
-	}
-
-	for (int32 y = 1; y < WidthY - 1; ++y)
-	{
-		// Left edge
-		float s01 = GetHeight(0, y) * MaxHeight;
-		float s21 = GetHeight(1, y) * MaxHeight;
-		float s10 = GetHeight(0, y - 1) * MaxHeight;
-		float s12 = GetHeight(0, y + 1) * MaxHeight;
-
-		FVector vx(2.0f, 0, s21 - s01);
-		FVector vy(0, 2.0f, s10 - s12);
-
-		vx.Normalize();
-		vy.Normalize();
-		Normals[y * WidthX] = FVector::CrossProduct(vx, vy);
-		Tangents[y * WidthX] = FProcMeshTangent(vx.X, vx.Y, vx.Z);
-
-		// Right edge
-		int32 x = WidthX - 1;
-		s01 = GetHeight(x - 1, y) * MaxHeight;
-		s21 = GetHeight(x, y) * MaxHeight;
-		s10 = GetHeight(x, y - 1) * MaxHeight;
-		s12 = GetHeight(x, y + 1) * MaxHeight;
-
-		vx = { 2.0f, 0, s21 - s01 };
-		vy = { 0, 2.0f, s10 - s12 };
-
-		vx.Normalize();
-		vy.Normalize();
-		Normals[y * WidthX + x] = FVector::CrossProduct(vx, vy);
-		Tangents[y * WidthX + x] = FProcMeshTangent(vx.X, vx.Y, vx.Z);
-	}
-
-	// Get the corners last
-
-	// Top left corner
-	int32 x = 0;
-	int32 y = 0;
-	float s01 = GetHeight(x, y) * MaxHeight;
-	float s21 = GetHeight(x + 1, y) * MaxHeight;
-	float s10 = GetHeight(x, y) * MaxHeight;
-	float s12 = GetHeight(x, y + 1) * MaxHeight;
-
-	FVector vx(2.0f, 0, s21 - s01);
-	FVector vy(0, 2.0f, s10 - s12);
-
-	vx.Normalize();
-	vy.Normalize();
-	Normals[y * WidthX + x] = FVector::CrossProduct(vx, vy);
-	Tangents[y * WidthX + x] = FProcMeshTangent(vx.X, vx.Y, vx.Z);
-
-	// Top right corner
-	x = WidthX - 1;
-	y = 0;
-	s01 = GetHeight(x - 1, y) * MaxHeight;
-	s21 = GetHeight(x, y) * MaxHeight;
-	s10 = GetHeight(x, y) * MaxHeight;
-	s12 = GetHeight(x, y + 1) * MaxHeight;
-
-	vx = { 2.0f, 0, s21 - s01 };
-	vy = { 0, 2.0f, s10 - s12 };
-
-	vx.Normalize();
-	vy.Normalize();
-	Normals[y * WidthX + x] = FVector::CrossProduct(vx, vy);
-	Tangents[y * WidthX + x] = FProcMeshTangent(vx.X, vx.Y, vx.Z);
-
-	// Bottom left corner
-	x = 0;
-	y = WidthY - 1;
-	s01 = GetHeight(x, y) * MaxHeight;
-	s21 = GetHeight(x + 1, y) * MaxHeight;
-	s10 = GetHeight(x, y - 1) * MaxHeight;
-	s12 = GetHeight(x, y) * MaxHeight;
-
-	vx = { 2.0f, 0, s21 - s01 };
-	vy = { 0, 2.0f, s10 - s12 };
-
-	vx.Normalize();
-	vy.Normalize();
-	Normals[y * WidthX + x] = FVector::CrossProduct(vx, vy);
-	Tangents[y * WidthX + x] = FProcMeshTangent(vx.X, vx.Y, vx.Z);
-
-	// Bottom right corner
-	x = WidthX - 1;
-	y = WidthY - 1;
-	s01 = GetHeight(x - 1, y) * MaxHeight;
-	s21 = GetHeight(x, y) * MaxHeight;
-	s10 = GetHeight(x, y - 1) * MaxHeight;
-	s12 = GetHeight(x, y) * MaxHeight;
-
-	vx = { 2.0f, 0, s21 - s01 };
-	vy = { 0, 2.0f, s10 - s12 };
-
-	vx.Normalize();
-	vy.Normalize();
-	Normals[y * WidthX + x] = FVector::CrossProduct(vx, vy);
-	Tangents[y * WidthX + x] = FProcMeshTangent(vx.X, vx.Y, vx.Z);
 }
 
 /// Native Functions ///
