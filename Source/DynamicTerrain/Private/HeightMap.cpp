@@ -31,18 +31,18 @@ float UHeightMap::BPGetHeight(int32 X, int32 Y) const
 	return GetHeight(X, Y);
 }
 
-void UHeightMap::CalculateNormalsAndTangents(TArray<FVector>& Normals, TArray<FProcMeshTangent>& Tangents) const
+void UHeightMap::CalculateNormalsAndTangents(int32 MinX, int32 MinY, int32 MaxX, int32 MaxY, TArray<FVector>& Normals, TArray<FProcMeshTangent>& Tangents) const
 {
 	// Resize the normal and tangent arrays
 	int32 width_x = WidthX - 2;
 	int32 width_y = WidthY - 2;
-	Normals.SetNum(width_x * width_y);
-	Tangents.SetNum(width_x * width_y);
+	Normals.SetNum((MaxY - MinY) * (MaxX - MinX));
+	Tangents.SetNum((MaxY - MinY) * (MaxX - MinX));
 
 	// Calculate normals
-	for (int32 y = 1; y < WidthY - 1; ++y)
+	for (int32 y = MinY; y < MaxY; ++y)
 	{
-		for (int32 x = 1; x < WidthX - 1; ++x)
+		for (int32 x = MinX; x < MaxX; ++x)
 		{
 			float s01 = GetHeight(x - 1, y) * MaxHeight;
 			float s21 = GetHeight(x + 1, y) * MaxHeight;

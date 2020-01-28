@@ -23,7 +23,7 @@ public:
 
 	// Calculate the normals and tangents of the map mesh
 	UFUNCTION(BlueprintPure)
-		void CalculateNormalsAndTangents(TArray<FVector>& Normals, TArray<FProcMeshTangent>& Tangents) const;
+		void CalculateNormalsAndTangents(int32 MinX, int32 MinY, int32 MaxX, int32 MaxY, TArray<FVector>& Normals, TArray<FProcMeshTangent>& Tangents) const;
 
 	/// Native Functions ///
 
