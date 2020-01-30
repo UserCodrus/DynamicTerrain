@@ -60,7 +60,7 @@ void UHeightMap::CalculateNormalsAndTangents(int32 MinX, int32 MinY, int32 MaxX,
 			vx.Normalize();
 			vy.Normalize();
 			Normals[y * map_size_x + x] = FVector::CrossProduct(vx, vy);
-			Tangents[y * map_size_y + x] = FProcMeshTangent(vx.X, vx.Y, vx.Z);
+			Tangents[y * map_size_x + x] = FProcMeshTangent(vx.X, vx.Y, vx.Z);
 		}
 	}
 }
