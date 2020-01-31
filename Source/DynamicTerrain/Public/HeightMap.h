@@ -21,10 +21,6 @@ public:
 	UFUNCTION(BlueprintPure)
 		float BPGetHeight(int32 X, int32 Y) const;
 
-	// Calculate the normals and tangents of the map mesh
-	UFUNCTION(BlueprintPure)
-		void CalculateNormalsAndTangents(int32 MinX, int32 MinY, int32 MaxX, int32 MaxY, TArray<FVector>& Normals, TArray<FProcMeshTangent>& Tangents) const;
-
 	/// Native Functions ///
 
 	inline float GetHeight(uint32 X, uint32 Y) const;

@@ -31,40 +31,6 @@ float UHeightMap::BPGetHeight(int32 X, int32 Y) const
 	return GetHeight(X, Y);
 }
 
-void UHeightMap::CalculateNormalsAndTangents(int32 MinX, int32 MinY, int32 MaxX, int32 MaxY, TArray<FVector>& Normals, TArray<FProcMeshTangent>& Tangents) const
-{
-	// Resize the normal and tangent arrays
-	int32 map_size_x = MaxX - MinX;
-	int32 map_size_y = MaxY - MinY;
-
-	Normals.SetNum(map_size_x * map_size_y);
-	Tangents.SetNum(map_size_x * map_size_y);
-
-	// Calculate normals
-	for (int32 y = 0; y < map_size_y; ++y)
-	{
-		for (int32 x = 0; x < map_size_x; ++x)
-		{
-			int32 map_offset_x = MinX + x;
-			int32 map_offset_y = MinY + y;
-			float s01 = GetHeight(map_offset_x - 1, map_offset_y) * MaxHeight;
-			float s21 = GetHeight(map_offset_x + 1, map_offset_y) * MaxHeight;
-			float s10 = GetHeight(map_offset_x, map_offset_y - 1) * MaxHeight;
-			float s12 = GetHeight(map_offset_x, map_offset_y + 1) * MaxHeight;
-
-			// Get tangents in the x and y directions
-			FVector vx(2.0f, 0, s21 - s01);
-			FVector vy(0, 2.0f, s10 - s12);
-
-			// Calculate the cross product of the two tangents
-			vx.Normalize();
-			vy.Normalize();
-			Normals[y * map_size_x + x] = FVector::CrossProduct(vx, vy);
-			Tangents[y * map_size_x + x] = FProcMeshTangent(vx.X, vx.Y, vx.Z);
-		}
-	}
-}
-
 /// Native Functions ///
 
 float UHeightMap::GetHeight(uint32 X, uint32 Y) const
