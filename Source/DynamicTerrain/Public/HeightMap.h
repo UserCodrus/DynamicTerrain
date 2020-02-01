@@ -4,7 +4,7 @@
 #include "HeightMap.generated.h"
 
 UCLASS()
-class UHeightMap : public UObject
+class DYNAMICTERRAIN_API UHeightMap : public UObject
 {
 	GENERATED_BODY()
 
@@ -46,7 +46,7 @@ protected:
 };
 
 UCLASS(Abstract)
-class UMapGenerator : public UObject
+class DYNAMICTERRAIN_API UMapGenerator : public UObject
 {
 	GENERATED_BODY()
 
