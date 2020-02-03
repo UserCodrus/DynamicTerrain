@@ -3,33 +3,39 @@
 #include "CoreMinimal.h"
 #include "Terrain.h"
 
-namespace TerrainTool
+class DYNAMICTERRAIN_API FTerrainTool
 {
-	class Tool
-	{
-	public:
-		virtual void Activate() = 0;
-		virtual void Deactivate() = 0;
+public:
+	virtual void Use(UHeightMap* Map, FVector2D Center, float Delta) = 0;
 
-		virtual void Tick() = 0;
+	virtual void Activate() = 0;
+	virtual void Deactivate() = 0;
 
-		virtual FText GetName() = 0;
+	virtual void Tick(float DeltaTime) = 0;
 
-	protected:
-		ATerrain* target = nullptr;
-	};
+	virtual FText GetName() = 0;
 
-	class Raise : public Tool
-	{
-	public:
-		static void Use(UHeightMap* Map, int32 X, int32 Y);
+	float Size = 10.0f;
+	float Strength = 0.01f;
+	float Falloff = 0.9f;
+	float Hardness = 0.1f;
 
-		virtual void Activate() override;
-		virtual void Deactivate() override;
+protected:
+	virtual float GetMagnitude(float Distance);
 
-		virtual void Tick() override;
+	ATerrain* Target = nullptr;
+};
 
-		virtual FText GetName() override;
-	};
+class DYNAMICTERRAIN_API FRaiseTool : public FTerrainTool
+{
+public:
+	virtual void Use(UHeightMap* Map, FVector2D Center, float Delta) override;
 
-}
+	virtual void Activate() override;
+	virtual void Deactivate() override;
+
+	virtual void Tick(float DeltaTime) override;
+
+	virtual FText GetName() override;
+};
+
