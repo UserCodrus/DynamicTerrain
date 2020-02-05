@@ -22,6 +22,10 @@ public:
 
 	// Get the location of the mouse cursor on the terrain
 	bool MouseToTerrainPosition(const FSceneView* View, FHitResult& Result);
+	bool MouseToTerrainPosition(const APlayerController* Controller, FHitResult& Result);
+
+	// Convert a world vector to heightmap coordinates
+	FVector2D WorldVectorToMapVector(FVector WorldPosition);
 
 	float Size = 10.0f;				// The radius of the tool circle
 	float Strength = 0.01f;			// The strength of the tool
