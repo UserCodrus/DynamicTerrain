@@ -4,7 +4,7 @@
 
 #define LOCTEXT_NAMESPACE "TerrainTools"
 
-float FTerrainTool::TraceDistance = 10000;
+float FTerrainTool::TraceDistance = 50000;
 
 void FTerrainTool::Activate()
 {
@@ -188,6 +188,9 @@ void FRaiseTool::Use(UHeightMap* Map, FVector2D Center, float Delta)
 			}
 		}
 	}
+
+	// Update the terrain sections covered
+	Terrain->UpdateRange(minx, miny, maxx, maxy);
 }
 
 void FRaiseTool::Tick(float DeltaTime)
