@@ -21,7 +21,7 @@ void FTerrainTool::Select(ATerrain* Target)
 	Terrain = Target;
 }
 
-bool FTerrainTool::GetCursorOnTerrain(FHitResult& Result)
+bool FTerrainTool::MouseToTerrainPosition(const FSceneView* View, FHitResult& Result)
 {
 	if (Terrain != nullptr)
 	{
@@ -37,22 +37,22 @@ bool FTerrainTool::GetCursorOnTerrain(FHitResult& Result)
 			FVector WorldOrigin;
 			FVector WorldDirection;
 
-			if (UGameplayStatics::DeprojectScreenToWorld(world->GetFirstPlayerController(), Mouse, WorldOrigin, WorldDirection))
-			{
-				// Trace from the viewport outward under the cursor
-				FHitResult hit;
-				world->LineTraceSingleByChannel(hit, WorldOrigin, WorldOrigin + WorldDirection * TraceDistance, ECollisionChannel::ECC_WorldDynamic);
+			FSceneView::DeprojectScreenToWorld(Mouse, View->UnconstrainedViewRect, View->ViewMatrices.GetInvViewProjectionMatrix(), WorldOrigin, WorldDirection);
 
-				AActor* actor = hit.GetActor();
-				if (actor != nullptr)
+			// Trace from the viewport outward under the cursor
+			FHitResult hit;
+			world->LineTraceSingleByChannel(hit, WorldOrigin, WorldOrigin + WorldDirection * TraceDistance, ECollisionChannel::ECC_WorldDynamic);
+
+			AActor* actor = hit.GetActor();
+			if (actor != nullptr)
+			{
+				if (actor->IsA<ATerrain>())
 				{
-					if (actor->IsA<ATerrain>())
-					{
-						Result = hit;
-						return true;
-					}
+					Result = hit;
+					return true;
 				}
 			}
+			
 		}
 	}
 

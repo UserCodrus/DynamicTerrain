@@ -21,7 +21,7 @@ public:
 	virtual void Select(ATerrain* Target);
 
 	// Get the location of the mouse cursor on the terrain
-	bool GetCursorOnTerrain(FHitResult& Result);
+	bool MouseToTerrainPosition(const FSceneView* View, FHitResult& Result);
 
 	float Size = 10.0f;				// The radius of the tool circle
 	float Strength = 0.01f;			// The strength of the tool
