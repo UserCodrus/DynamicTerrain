@@ -4,6 +4,53 @@
 
 #define LOCTEXT_NAMESPACE "TerrainTools"
 
+/// Terrain Brushes ///
+
+FText FBrushLinear::GetName() const
+{
+	return LOCTEXT("TerrianBrushLinearName", "Linear Brush");
+}
+
+float FBrushLinear::GetMagnitude(float Distance, float Radius, float Falloff) const
+{
+	return Distance < Radius ? 1.0f : Falloff > 0.0f ? FMath::Max(0.0f, 1.0f - (Distance - Radius) / Falloff) : 0.0f;
+}
+
+FText FBrushSmooth::GetName() const
+{
+	return LOCTEXT("TerrianBrushSmoothName", "Smooth Brush");
+}
+
+float FBrushSmooth::GetMagnitude(float Distance, float Radius, float Falloff) const
+{
+	float s = Distance < Radius ? 1.0f : Falloff > 0.0f ? FMath::Max(0.0f, 1.0f - (Distance - Radius) / Falloff) : 0.0f;
+	return s * s * (3 - 2 * s);
+}
+
+FText FBrushRound::GetName() const
+{
+	return LOCTEXT("TerrianBrushRoundName", "Round Brush");
+}
+
+float FBrushRound::GetMagnitude(float Distance, float Radius, float Falloff) const
+{
+	float s = Distance < Radius ? 0.0f : Falloff > 0.0f ? FMath::Min(1.0f, (Distance - Radius) / Falloff) : 1.0f;
+	return 1.0f - s * s;
+}
+
+FText FBrushSphere::GetName() const
+{
+	return LOCTEXT("TerrianBrushSphereName", "Sphere Brush");
+}
+
+float FBrushSphere::GetMagnitude(float Distance, float Radius, float Falloff) const
+{
+	float s = Distance < Radius ? 0.0f : Falloff > 0.0f ? FMath::Min(1.0f, (Distance - Radius) / Falloff) : 1.0f;
+	return FMath::Sqrt(1.0f - s * s);
+}
+
+/// Terrain Tool Functions ///
+
 float FTerrainTool::TraceDistance = 50000;
 
 void FTerrainTool::Activate()
@@ -19,6 +66,63 @@ void FTerrainTool::Deactivate()
 void FTerrainTool::Select(ATerrain* Target)
 {
 	Terrain = Target;
+}
+
+void FTerrainTool::SetBrush(FTerrainBrush* NewBrush)
+{
+	Brush = NewBrush;
+}
+
+void FTerrainTool::Apply(FVector2D Center, float Delta) const
+{
+	int32 width_x = Terrain->GetMap()->GetWidthX();
+	int32 width_y = Terrain->GetMap()->GetWidthY();
+	if (Center.X < 0 || Center.Y < 0 || Center.X > width_x || Center.Y > width_y)
+	{
+		return;
+	}
+
+	// Get the outer bounds of the circle
+	FIntRect bounds;
+	bounds.Min.X = FMath::FloorToInt(Center.X - Size - Falloff);
+	bounds.Max.X = FMath::CeilToInt(Center.X + Size + Falloff);
+	bounds.Min.Y = FMath::FloorToInt(Center.Y - Size - Falloff);
+	bounds.Max.Y = FMath::CeilToInt(Center.Y + Size + Falloff);
+
+	// Keep the circle within the bounds of the heightmap
+	if (bounds.Min.X < 0)
+	{
+		bounds.Min.X = 0;
+	}
+	if (bounds.Min.Y < 0)
+	{
+		bounds.Min.Y = 0;
+	}
+	if (bounds.Max.X > width_x)
+	{
+		bounds.Max.X = width_x;
+	}
+	if (bounds.Max.Y > width_y)
+	{
+		bounds.Max.Y = width_y;
+	}
+
+	// Raise each vertex within the circle's radius
+	for (int x = bounds.Min.X; x < bounds.Max.X; ++x)
+	{
+		for (int y = bounds.Min.Y; y < bounds.Max.Y; ++y)
+		{
+			// Make sure the vertex is within the border of the circle
+			float dist = FVector2D::Distance(Center, FVector2D(x, y));
+
+			// Raise the vertex height
+			float height = Terrain->GetMap()->GetHeight(x, y);
+			Terrain->GetMap()->SetHeight(x, y, height + Brush->GetMagnitude(dist, Size, Falloff) * Delta * Strength);
+		}
+	}
+
+	// Update the terrain sections covered
+	Terrain->UpdateRange(bounds);
 }
 
 bool FTerrainTool::MouseToTerrainPosition(const FSceneView* View, FHitResult& Result)
@@ -122,75 +226,11 @@ FVector2D FTerrainTool::WorldVectorToMapVector(FVector WorldPosition)
 	return loc;
 }
 
-float FTerrainTool::GetMagnitude(float Distance)
-{
-	// Scale the magnitude based on the distance from the center point
-	float magnitude = Distance / Size;
-	// Scale exponentially
-	magnitude = (1.0f - magnitude * magnitude);
-	// Apply falloff
-	//magnitude = magnitude / Falloff;
-	// Apply hardness
-	magnitude = magnitude * (1.0f - Hardness) + Hardness;
-	// Clamp the value and apply the strength multiplier
-	magnitude = FMath::Clamp(magnitude, 0.0f, 1.0f) * Strength;
-
-	return magnitude;
-}
-
 /// Raise Tool ///
 
 void FRaiseTool::Use(UHeightMap* Map, FVector2D Center, float Delta)
 {
-	int32 width_x = Map->GetWidthX();
-	int32 width_y = Map->GetWidthY();
-	if (Center.X < 0 || Center.Y < 0 || Center.X > width_x || Center.Y > width_y)
-	{
-		return;
-	}
-
-	// Get the outer bounds of the circle
-	int minx = (int)(Center.X - Size - 1);
-	int maxx = (int)(Center.X + Size + 1);
-	int miny = (int)(Center.Y - Size - 1);
-	int maxy = (int)(Center.Y + Size + 1);
-
-	if (minx < 0)
-	{
-		minx = 0;
-	}
-	if (miny < 0)
-	{
-		miny = 0;
-	}
-	if (maxx > width_x)
-	{
-		maxx = width_x;
-	}
-	if (maxy > width_y)
-	{
-		maxy = width_y;
-	}
-
-	// Raise each vertex within the circle's radius
-	for (int x = minx; x < maxx; ++x)
-	{
-		for (int y = miny; y < maxy; ++y)
-		{
-			// Make sure the vertex is within the border of the circle
-			float dist = FVector2D::Distance(Center, FVector2D(x, y));
-
-			if (dist <= Size)
-			{
-				// Raise the vertex height
-				float height = Map->GetHeight(x, y);
-				Map->SetHeight(x, y, height + GetMagnitude(dist) * Delta);
-			}
-		}
-	}
-
-	// Update the terrain sections covered
-	Terrain->UpdateRange(minx, miny, maxx, maxy);
+	Apply(Center, Delta);
 }
 
 void FRaiseTool::Tick(float DeltaTime)
@@ -198,7 +238,7 @@ void FRaiseTool::Tick(float DeltaTime)
 	
 }
 
-FText FRaiseTool::GetName()
+FText FRaiseTool::GetName() const
 {
 	return LOCTEXT("TerrianToolRaiseName", "Raise Terrain");
 }
@@ -207,35 +247,7 @@ FText FRaiseTool::GetName()
 
 void FLowerTool::Use(UHeightMap* Map, FVector2D Center, float Delta)
 {
-	int32 width_x = Map->GetWidthX();
-	int32 width_y = Map->GetWidthY();
-	if (Center.X < 0 || Center.Y < 0 || Center.X >= width_x || Center.Y >= width_y)
-	{
-		return;
-	}
-
-	// Set the radius of the circle proportional to the size
-	int radius = (int)Size + 1;
-
-	// Raise each vertex within the circle's radius
-	for (int32 x = Center.X - radius; x < Center.X + radius; ++x)
-	{
-		for (int32 y = Center.Y - radius; y < Center.Y + radius; ++y)
-		{
-			if (x >= 0 || y >= 0 || x < width_x || y < width_y)
-			{
-				// Make sure the vertex is within the border of the circle
-				float dist = FVector2D::Distance(Center, FVector2D(x, y));
-
-				if (dist <= Size)
-				{
-					// Raise the vertex height
-					float height = Map->GetHeight(x, y);
-					Map->SetHeight(x, y, height - GetMagnitude(dist) * Delta);
-				}
-			}
-		}
-	}
+	Apply(Center, -Delta);
 }
 
 void FLowerTool::Tick(float DeltaTime)
@@ -243,7 +255,7 @@ void FLowerTool::Tick(float DeltaTime)
 
 }
 
-FText FLowerTool::GetName()
+FText FLowerTool::GetName() const
 {
 	return LOCTEXT("TerrianToolRaiseName", "Lower Terrain");
 }
