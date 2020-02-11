@@ -78,7 +78,7 @@ public:
 	// Calculate a brush mask using the currently selected brush
 	virtual FBrushStroke GetStroke(FVector2D Center) const = 0;
 
-	virtual void Tick(float DeltaTime) = 0;
+	virtual void Tick(float DeltaTime);
 
 	virtual void Activate();
 	virtual void Deactivate();
@@ -114,24 +114,29 @@ protected:
 	bool Active = false;			// Set to true when the tool should operate every tick
 };
 
-// A tool for raising the terrain
+// A tool for sculpting the terrain
 class DYNAMICTERRAIN_API FSculptTool : public FTerrainTool
 {
 public:
 	virtual FBrushStroke GetStroke(FVector2D Center) const override;
 
-	virtual void Tick(float DeltaTime) override;
-
 	virtual FText GetName() const override;
 };
 
-// A tool for lowering the terrain
+// A tool for smoothing terrain
 class DYNAMICTERRAIN_API FSmoothTool : public FTerrainTool
 {
 public:
 	virtual FBrushStroke GetStroke(FVector2D Center) const override;
 
-	virtual void Tick(float DeltaTime) override;
+	virtual FText GetName() const override;
+};
+
+// A tool for flattening terrain
+class DYNAMICTERRAIN_API FFlattenTool : public FTerrainTool
+{
+public:
+	virtual FBrushStroke GetStroke(FVector2D Center) const override;
 
 	virtual FText GetName() const override;
 };

@@ -53,6 +53,11 @@ float FBrushSphere::GetStrength(float Distance, float Radius, float Falloff) con
 
 float FTerrainTool::TraceDistance = 50000;
 
+void FTerrainTool::Tick(float DeltaTime)
+{
+
+}
+
 void FTerrainTool::Activate()
 {
 	Active = true;
@@ -82,31 +87,6 @@ void FTerrainTool::Apply(FVector2D Center, float Delta) const
 		return;
 	}
 
-	// Get the outer bounds of the circle
-	/*FIntRect bounds;
-	bounds.Min.X = FMath::FloorToInt(Center.X - Size - Falloff);
-	bounds.Max.X = FMath::CeilToInt(Center.X + Size + Falloff);
-	bounds.Min.Y = FMath::FloorToInt(Center.Y - Size - Falloff);
-	bounds.Max.Y = FMath::CeilToInt(Center.Y + Size + Falloff);
-
-	// Keep the circle within the bounds of the heightmap
-	if (bounds.Min.X < 0)
-	{
-		bounds.Min.X = 0;
-	}
-	if (bounds.Min.Y < 0)
-	{
-		bounds.Min.Y = 0;
-	}
-	if (bounds.Max.X > width_x)
-	{
-		bounds.Max.X = width_x;
-	}
-	if (bounds.Max.Y > width_y)
-	{
-		bounds.Max.Y = width_y;
-	}*/
-
 	// Get the mask for the tool
 	FBrushStroke mask = GetStroke(Center);
 	FIntRect bounds = mask.GetBounds();
@@ -116,12 +96,8 @@ void FTerrainTool::Apply(FVector2D Center, float Delta) const
 	{
 		for (int y = bounds.Min.Y; y < bounds.Max.Y; ++y)
 		{
-			// Make sure the vertex is within the border of the circle
-			//float dist = FVector2D::Distance(Center, FVector2D(x, y));
-
-			// Raise the vertex height
+			// Change the vertex height
 			float height = Terrain->GetMap()->GetHeight(x, y);
-			//Terrain->GetMap()->SetHeight(x, y, height + Brush->GetStrength(dist, Size, Falloff) * Delta * Strength * inversion);
 			Terrain->GetMap()->SetHeight(x, y, height + mask.GetData(x, y) * Delta * Strength);
 		}
 	}
@@ -235,8 +211,7 @@ FVector2D FTerrainTool::WorldVectorToMapVector(FVector WorldPosition)
 
 FBrushStroke FSculptTool::GetStroke(FVector2D Center) const
 {
-	int32 width_x = Terrain->GetMap()->GetWidthX();
-	int32 width_y = Terrain->GetMap()->GetWidthY();
+	UHeightMap* map = Terrain->GetMap();
 
 	// Get the outer bounds of the circle
 	FIntRect bounds;
@@ -254,13 +229,13 @@ FBrushStroke FSculptTool::GetStroke(FVector2D Center) const
 	{
 		bounds.Min.Y = 0;
 	}
-	if (bounds.Max.X > width_x)
+	if (bounds.Max.X > map->GetWidthX())
 	{
-		bounds.Max.X = width_x;
+		bounds.Max.X = map->GetWidthX();
 	}
-	if (bounds.Max.Y > width_y)
+	if (bounds.Max.Y > map->GetWidthY())
 	{
-		bounds.Max.Y = width_y;
+		bounds.Max.Y = map->GetWidthY();
 	}
 
 	// Invert the mask
@@ -285,11 +260,6 @@ FBrushStroke FSculptTool::GetStroke(FVector2D Center) const
 	return stroke;
 }
 
-void FSculptTool::Tick(float DeltaTime)
-{
-	
-}
-
 FText FSculptTool::GetName() const
 {
 	return LOCTEXT("TerrianToolSculptName", "Sculpt Terrain");
@@ -299,8 +269,7 @@ FText FSculptTool::GetName() const
 
 FBrushStroke FSmoothTool::GetStroke(FVector2D Center) const
 {
-	int32 width_x = Terrain->GetMap()->GetWidthX();
-	int32 width_y = Terrain->GetMap()->GetWidthY();
+	UHeightMap* map = Terrain->GetMap();
 
 	// Get the outer bounds of the circle
 	FIntRect bounds;
@@ -318,13 +287,13 @@ FBrushStroke FSmoothTool::GetStroke(FVector2D Center) const
 	{
 		bounds.Min.Y = 1;
 	}
-	if (bounds.Max.X > width_x - 1)
+	if (bounds.Max.X > map->GetWidthX() - 1)
 	{
-		bounds.Max.X = width_x - 1;
+		bounds.Max.X = map->GetWidthX() - 1;
 	}
-	if (bounds.Max.Y > width_y - 1)
+	if (bounds.Max.Y > map->GetWidthY() - 1)
 	{
-		bounds.Max.Y = width_y - 1;
+		bounds.Max.Y = map->GetWidthY() - 1;
 	}
 
 	// Invert the mask
@@ -341,7 +310,6 @@ FBrushStroke FSmoothTool::GetStroke(FVector2D Center) const
 		for (int y = bounds.Min.Y; y < bounds.Max.Y; ++y)
 		{
 			float dist = FVector2D::Distance(Center, FVector2D(x, y));
-			UHeightMap* map = Terrain->GetMap();
 
 			// Set the mask to the difference between the average height of the surrounding area and the current point
 			float h00 = map->GetHeight(x, y) + 1.0f;
@@ -359,14 +327,78 @@ FBrushStroke FSmoothTool::GetStroke(FVector2D Center) const
 	return stroke;
 }
 
-void FSmoothTool::Tick(float DeltaTime)
-{
-
-}
-
 FText FSmoothTool::GetName() const
 {
 	return LOCTEXT("TerrianToolSmoothName", "Smooth Terrain");
+}
+
+/// Flatten Tool ///
+
+FBrushStroke FFlattenTool::GetStroke(FVector2D Center) const
+{
+	UHeightMap* map = Terrain->GetMap();
+
+	// Get the outer bounds of the circle
+	FIntRect bounds;
+	bounds.Min.X = FMath::FloorToInt(Center.X - Size - Falloff);
+	bounds.Max.X = FMath::CeilToInt(Center.X + Size + Falloff);
+	bounds.Min.Y = FMath::FloorToInt(Center.Y - Size - Falloff);
+	bounds.Max.Y = FMath::CeilToInt(Center.Y + Size + Falloff);
+
+	// Keep the circle within the bounds of the heightmap
+	if (bounds.Min.X < 0)
+	{
+		bounds.Min.X = 0;
+	}
+	if (bounds.Min.Y < 0)
+	{
+		bounds.Min.Y = 0;
+	}
+	if (bounds.Max.X > map->GetWidthX())
+	{
+		bounds.Max.X = map->GetWidthX();
+	}
+	if (bounds.Max.Y > map->GetWidthY())
+	{
+		bounds.Max.Y = map->GetWidthY();
+	}
+
+	// Invert the mask
+	float inversion = 1.0f;
+	if (Invert)
+	{
+		inversion = -1.0f;
+	}
+
+	// Get the height at the center point
+	int X = (int)Center.X;
+	int Y = (int)Center.Y;
+	float DX = Center.X - X;
+	float DY = Center.Y - Y;
+	float height = FMath::Lerp(
+		FMath::Lerp(map->GetHeight(X, Y), map->GetHeight(X + 1, Y), DX), 
+		FMath::Lerp(map->GetHeight(X, Y + 1), map->GetHeight(X + 1, Y + 1), DX),
+		DY);
+
+	// Calculate the brusk mask using the current brush
+	FBrushStroke stroke(bounds);
+	for (int x = bounds.Min.X; x < bounds.Max.X; ++x)
+	{
+		for (int y = bounds.Min.Y; y < bounds.Max.Y; ++y)
+		{
+			float dist = FVector2D::Distance(Center, FVector2D(x, y));
+
+			// Set the mask to the difference between the center height and the current point
+			stroke.GetData(x, y) = 10.0f * (height - map->GetHeight(x, y)) * Brush->GetStrength(dist, Size, Falloff) * inversion;
+		}
+	}
+
+	return stroke;
+}
+
+FText FFlattenTool::GetName() const
+{
+	return LOCTEXT("TerrianToolFlattenName", "Flatten Terrain");
 }
 
 #undef LOCTEXT_NAMESPACE
