@@ -10,7 +10,7 @@ public:
 	virtual FText GetName() const = 0;
 
 	// Get the falloff of the brush
-	virtual float GetMagnitude(float Distance, float Radius, float Falloff) const = 0;
+	virtual float GetStrength(float Distance, float Radius, float Falloff) const = 0;
 };
 
 // A brush with a sharp, linear shape
@@ -18,7 +18,7 @@ class DYNAMICTERRAIN_API FBrushLinear : public FTerrainBrush
 {
 public:
 	virtual FText GetName() const override;
-	virtual float GetMagnitude(float Distance, float Radius, float Falloff) const override;
+	virtual float GetStrength(float Distance, float Radius, float Falloff) const override;
 };
 
 // A brush with a steep but smooth shape
@@ -26,7 +26,7 @@ class DYNAMICTERRAIN_API FBrushSmooth : public FTerrainBrush
 {
 public:
 	virtual FText GetName() const override;
-	virtual float GetMagnitude(float Distance, float Radius, float Falloff) const override;
+	virtual float GetStrength(float Distance, float Radius, float Falloff) const override;
 };
 
 // A brush with a smooth, gradually rounded shape
@@ -34,7 +34,7 @@ class DYNAMICTERRAIN_API FBrushRound : public FTerrainBrush
 {
 public:
 	virtual FText GetName() const override;
-	virtual float GetMagnitude(float Distance, float Radius, float Falloff) const override;
+	virtual float GetStrength(float Distance, float Radius, float Falloff) const override;
 };
 
 // A brush with a spherical shape
@@ -42,17 +42,41 @@ class DYNAMICTERRAIN_API FBrushSphere : public FTerrainBrush
 {
 public:
 	virtual FText GetName() const override;
-	virtual float GetMagnitude(float Distance, float Radius, float Falloff) const override;
+	virtual float GetStrength(float Distance, float Radius, float Falloff) const override;
+};
+
+class DYNAMICTERRAIN_API FBrushStroke
+{
+public:
+	FBrushStroke() : Bounds() {}
+	FBrushStroke(FIntRect StrokeBounds) : Bounds(StrokeBounds)
+	{
+		Mask.SetNumZeroed(Bounds.Area());
+	}
+
+	FIntRect GetBounds()
+	{
+		return Bounds;
+	}
+
+	float& GetData(int X, int Y)
+	{
+		return Mask[(Y - Bounds.Min.Y) * Bounds.Width() + (X - Bounds.Min.X)];
+	}
+
+protected:
+	FIntRect Bounds;		// The boundaries of the mask within its parent heightmap
+	TArray<float> Mask;		// The alpha mask of the brush
 };
 
 class DYNAMICTERRAIN_API FTerrainTool
 {
 public:
-	// Use the tool to manipulate a heightmap
-	virtual void Use(UHeightMap* Map, FVector2D Center, float Delta) = 0;
-
 	// Retrive the name of the tool for the editor UI
 	virtual FText GetName() const = 0;
+
+	// Calculate a brush mask using the currently selected brush
+	virtual FBrushStroke GetStroke(FVector2D Center) const = 0;
 
 	virtual void Tick(float DeltaTime) = 0;
 
@@ -79,11 +103,11 @@ public:
 	float Strength = 0.01f;			// The strength of the tool
 	float Falloff = 5.0f;			// The distance from the center that the strength begins to fall
 
+	bool Invert = false;			// Set to true to invert the effect of the tool
+
 	static float TraceDistance;		// The distance to check for the mouse cursor touching the terrain
 
 protected:
-	//virtual float GetMagnitude(float Distance) const;
-
 	ATerrain* Terrain = nullptr;	// The currently selected terrain object
 	FTerrainBrush* Brush = nullptr;	// The currently selected brush
 
@@ -91,10 +115,10 @@ protected:
 };
 
 // A tool for raising the terrain
-class DYNAMICTERRAIN_API FRaiseTool : public FTerrainTool
+class DYNAMICTERRAIN_API FSculptTool : public FTerrainTool
 {
 public:
-	virtual void Use(UHeightMap* Map, FVector2D Center, float Delta) override;
+	virtual FBrushStroke GetStroke(FVector2D Center) const override;
 
 	virtual void Tick(float DeltaTime) override;
 
@@ -102,10 +126,10 @@ public:
 };
 
 // A tool for lowering the terrain
-class DYNAMICTERRAIN_API FLowerTool : public FTerrainTool
+class DYNAMICTERRAIN_API FSmoothTool : public FTerrainTool
 {
 public:
-	virtual void Use(UHeightMap* Map, FVector2D Center, float Delta) override;
+	virtual FBrushStroke GetStroke(FVector2D Center) const override;
 
 	virtual void Tick(float DeltaTime) override;
 
