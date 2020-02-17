@@ -14,9 +14,8 @@ public:
 
 	// Resize the heightmap
 	// X, Y = The width of the heightmap
-	// Z = The maximum height of the heightmap
 	UFUNCTION(BlueprintCallable)
-		void Resize(int32 X, int32 Y, int32 Z);
+		void Resize(int32 X, int32 Y);
 
 	// Get the value of the heightmap at the specified coordinates
 	UFUNCTION(BlueprintPure)
@@ -40,10 +39,6 @@ protected:
 		int32 WidthX = 0;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 		int32 WidthY = 0;
-
-	// The maximum height of the heightmap
-	UPROPERTY(VisibleAnywhere)
-		float MaxHeight = 1.0f;
 };
 
 UCLASS(Abstract)

@@ -7,16 +7,15 @@
 
 /// Blueprint Functions ///
 
-void UHeightMap::Resize(int32 X, int32 Y, int32 Z)
+void UHeightMap::Resize(int32 X, int32 Y)
 {
-	if (X <= 0 || Y <= 0 || Z <= 0)
+	if (X <= 0 || Y <= 0)
 	{
 		return;
 	}
 
 	WidthX = X;
 	WidthY = Y;
-	MaxHeight = Z;
 
 	MapData.SetNumZeroed(WidthX * WidthY, true);
 }
@@ -88,7 +87,7 @@ void UMapGenerator::Plasma(UHeightMap* Map, int32 Scale)
 	{
 		for (int32 y = 0; y < width_y; ++y)
 		{
-			Map->SetHeight(x, y, noise.cubic((float)x, (float)y));
+			Map->SetHeight(x, y, noise.cubic((float)x, (float)y) * 256.0f);
 		}
 	}
 }
@@ -141,7 +140,7 @@ void UMapGenerator::Perlin(UHeightMap* Map, int32 Frequency, int32 Octaves, floa
 				amplitude *= Persistence;
 			}
 
-			Map->SetHeight(x, y, height / total);
+			Map->SetHeight(x, y, height * 256.0f / total);
 		}
 	}
 }

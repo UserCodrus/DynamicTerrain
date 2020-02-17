@@ -312,15 +312,15 @@ FBrushStroke FSmoothTool::GetStroke(FVector2D Center) const
 			float dist = FVector2D::Distance(Center, FVector2D(x, y));
 
 			// Set the mask to the difference between the average height of the surrounding area and the current point
-			float h00 = map->GetHeight(x, y) + 1.0f;
-			float h01 = map->GetHeight(x - 1, y) + 1.0f;
-			float h21 = map->GetHeight(x + 1, y) + 1.0f;
-			float h10 = map->GetHeight(x, y - 1) + 1.0f;
-			float h12 = map->GetHeight(x, y + 1) + 1.0f;
+			float h00 = map->GetHeight(x, y);
+			float h01 = map->GetHeight(x - 1, y);
+			float h21 = map->GetHeight(x + 1, y);
+			float h10 = map->GetHeight(x, y - 1);
+			float h12 = map->GetHeight(x, y + 1);
 
 			float hdiff = (h01 + h21 + h10 + h12) / 4.0f - h00;
 
-			stroke.GetData(x, y) = 100.0f * hdiff * Brush->GetStrength(dist, Size, Falloff) * inversion;
+			stroke.GetData(x, y) = 20.0f * hdiff * Brush->GetStrength(dist, Size, Falloff) * inversion;
 		}
 	}
 
@@ -389,7 +389,7 @@ FBrushStroke FFlattenTool::GetStroke(FVector2D Center) const
 			float dist = FVector2D::Distance(Center, FVector2D(x, y));
 
 			// Set the mask to the difference between the center height and the current point
-			stroke.GetData(x, y) = 10.0f * (height - map->GetHeight(x, y)) * Brush->GetStrength(dist, Size, Falloff) * inversion;
+			stroke.GetData(x, y) = (height - map->GetHeight(x, y)) * Brush->GetStrength(dist, Size, Falloff) * inversion;
 		}
 	}
 

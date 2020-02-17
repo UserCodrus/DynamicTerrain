@@ -100,7 +100,7 @@ public:
 	FVector2D WorldVectorToMapVector(FVector WorldPosition);
 
 	float Size = 10.0f;				// The radius of the tool circle
-	float Strength = 0.01f;			// The strength of the tool
+	float Strength = 1.0f;			// The strength of the tool
 	float Falloff = 5.0f;			// The distance from the center that the strength begins to fall
 
 	bool Invert = false;			// Set to true to invert the effect of the tool
