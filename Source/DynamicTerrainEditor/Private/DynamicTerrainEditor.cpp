@@ -7,7 +7,7 @@ IMPLEMENT_MODULE(FDynamicTerrainEditorModule, DynamicTerrainEditor);
 
 void FDynamicTerrainEditorModule::StartupModule()
 {
-	FEditorModeRegistry::Get().RegisterMode<FDynamicTerrainMode>(FDynamicTerrainMode::DynamicTerrainModeID, LOCTEXT("DynamicTerrainModeName", "DynamicTerrain"), FSlateIcon(), true);
+	FEditorModeRegistry::Get().RegisterMode<FDynamicTerrainMode>(FDynamicTerrainMode::DynamicTerrainModeID, LOCTEXT("DynamicTerrainModeName", "Terrain Editor"), FSlateIcon(), true);
 }
 
 void FDynamicTerrainEditorModule::ShutdownModule()

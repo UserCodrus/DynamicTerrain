@@ -167,15 +167,8 @@ bool FTerrainTool::MouseToTerrainPosition(const APlayerController* Controller, F
 				FHitResult hit;
 				world->LineTraceSingleByChannel(hit, WorldOrigin, WorldOrigin + WorldDirection * TraceDistance, ECollisionChannel::ECC_WorldDynamic);
 
-				AActor* actor = hit.GetActor();
-				if (actor != nullptr)
-				{
-					if (actor->IsA<ATerrain>())
-					{
-						Result = hit;
-						return true;
-					}
-				}
+				Result = hit;
+				return true;
 			}
 		}
 	}

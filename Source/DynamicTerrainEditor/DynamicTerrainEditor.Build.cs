@@ -25,6 +25,8 @@ public class DynamicTerrainEditor : ModuleRules
 			{
 				"Core",
 				"UnrealEd",
+				"InputCore",
+				"ProceduralMeshComponent",
 				"DynamicTerrain"
 				// ... add other public dependencies that you statically link with here ...
 			}
