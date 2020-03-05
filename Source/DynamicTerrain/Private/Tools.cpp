@@ -4,11 +4,20 @@
 
 #define LOCTEXT_NAMESPACE "TerrainTools"
 
+const FName FSculptTool::ToolID = TEXT("SculptTool");
+const FName FSmoothTool::ToolID = TEXT("SmoothTool");
+const FName FFlattenTool::ToolID = TEXT("FlattenTool");
+
 /// Terrain Brushes ///
 
 FText FBrushLinear::GetName() const
 {
 	return LOCTEXT("TerrianBrushLinearName", "Linear Brush");
+}
+
+TerrainBrushID FBrushLinear::GetID() const
+{
+	return TerrainBrushID::LINEAR;
 }
 
 float FBrushLinear::GetStrength(float Distance, float Radius, float Falloff) const
@@ -19,6 +28,11 @@ float FBrushLinear::GetStrength(float Distance, float Radius, float Falloff) con
 FText FBrushSmooth::GetName() const
 {
 	return LOCTEXT("TerrianBrushSmoothName", "Smooth Brush");
+}
+
+TerrainBrushID FBrushSmooth::GetID() const
+{
+	return TerrainBrushID::SMOOTH;
 }
 
 float FBrushSmooth::GetStrength(float Distance, float Radius, float Falloff) const
@@ -32,6 +46,11 @@ FText FBrushRound::GetName() const
 	return LOCTEXT("TerrianBrushRoundName", "Round Brush");
 }
 
+TerrainBrushID FBrushRound::GetID() const
+{
+	return TerrainBrushID::ROUND;
+}
+
 float FBrushRound::GetStrength(float Distance, float Radius, float Falloff) const
 {
 	float s = Distance < Radius ? 0.0f : Falloff > 0.0f ? FMath::Min(1.0f, (Distance - Radius) / Falloff) : 1.0f;
@@ -43,13 +62,18 @@ FText FBrushSphere::GetName() const
 	return LOCTEXT("TerrianBrushSphereName", "Sphere Brush");
 }
 
+TerrainBrushID FBrushSphere::GetID() const
+{
+	return TerrainBrushID::SPHERE;
+}
+
 float FBrushSphere::GetStrength(float Distance, float Radius, float Falloff) const
 {
 	float s = Distance < Radius ? 0.0f : Falloff > 0.0f ? FMath::Min(1.0f, (Distance - Radius) / Falloff) : 1.0f;
 	return FMath::Sqrt(1.0f - s * s);
 }
 
-/// Terrain Tool Functions ///
+/// Terrain Tools ///
 
 float FTerrainTool::TraceDistance = 50000;
 
@@ -258,6 +282,16 @@ FText FSculptTool::GetName() const
 	return LOCTEXT("TerrianToolSculptName", "Sculpt Terrain");
 }
 
+FName FSculptTool::GetToolID() const
+{
+	return ToolID;
+}
+
+TerrainToolID FSculptTool::GetID() const
+{
+	return TerrainToolID::SCULPT;
+}
+
 /// Smooth Tool ///
 
 FBrushStroke FSmoothTool::GetStroke(FVector2D Center) const
@@ -323,6 +357,16 @@ FBrushStroke FSmoothTool::GetStroke(FVector2D Center) const
 FText FSmoothTool::GetName() const
 {
 	return LOCTEXT("TerrianToolSmoothName", "Smooth Terrain");
+}
+
+FName FSmoothTool::GetToolID() const
+{
+	return ToolID;
+}
+
+TerrainToolID FSmoothTool::GetID() const
+{
+	return TerrainToolID::SMOOTH;
 }
 
 /// Flatten Tool ///
@@ -392,6 +436,16 @@ FBrushStroke FFlattenTool::GetStroke(FVector2D Center) const
 FText FFlattenTool::GetName() const
 {
 	return LOCTEXT("TerrianToolFlattenName", "Flatten Terrain");
+}
+
+FName FFlattenTool::GetToolID() const
+{
+	return ToolID;
+}
+
+TerrainToolID FFlattenTool::GetID() const
+{
+	return TerrainToolID::FLATTEN;
 }
 
 #undef LOCTEXT_NAMESPACE

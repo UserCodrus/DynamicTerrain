@@ -26,6 +26,7 @@ public class DynamicTerrainEditor : ModuleRules
 				"Core",
 				"UnrealEd",
 				"InputCore",
+				"PropertyEditor",
 				"ProceduralMeshComponent",
 				"DynamicTerrain"
 				// ... add other public dependencies that you statically link with here ...
@@ -39,7 +40,8 @@ public class DynamicTerrainEditor : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"Slate",
-				"SlateCore"
+				"SlateCore",
+				"Projects"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

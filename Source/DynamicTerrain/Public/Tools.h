@@ -3,11 +3,33 @@
 #include "CoreMinimal.h"
 #include "Terrain.h"
 
+enum class TerrainBrushID
+{
+	LINEAR,
+	SMOOTH,
+	ROUND,
+	SPHERE,
+	NUM
+};
+
+enum class TerrainToolID
+{
+	SCULPT,
+	SMOOTH,
+	FLATTEN,
+	NUM
+};
+
+/// Terrain Brushes ///
+
 class DYNAMICTERRAIN_API FTerrainBrush
 {
 public:
-	// Retrive the name of the brush for the editor UI
+	// Get the name of the brush for the editor UI
 	virtual FText GetName() const = 0;
+
+	// Get the ID value of the brush to identify it easily
+	virtual TerrainBrushID GetID() const = 0;
 
 	// Get the falloff of the brush
 	virtual float GetStrength(float Distance, float Radius, float Falloff) const = 0;
@@ -18,6 +40,7 @@ class DYNAMICTERRAIN_API FBrushLinear : public FTerrainBrush
 {
 public:
 	virtual FText GetName() const override;
+	virtual TerrainBrushID GetID() const;
 	virtual float GetStrength(float Distance, float Radius, float Falloff) const override;
 };
 
@@ -26,6 +49,7 @@ class DYNAMICTERRAIN_API FBrushSmooth : public FTerrainBrush
 {
 public:
 	virtual FText GetName() const override;
+	virtual TerrainBrushID GetID() const;
 	virtual float GetStrength(float Distance, float Radius, float Falloff) const override;
 };
 
@@ -34,6 +58,7 @@ class DYNAMICTERRAIN_API FBrushRound : public FTerrainBrush
 {
 public:
 	virtual FText GetName() const override;
+	virtual TerrainBrushID GetID() const;
 	virtual float GetStrength(float Distance, float Radius, float Falloff) const override;
 };
 
@@ -42,6 +67,7 @@ class DYNAMICTERRAIN_API FBrushSphere : public FTerrainBrush
 {
 public:
 	virtual FText GetName() const override;
+	virtual TerrainBrushID GetID() const;
 	virtual float GetStrength(float Distance, float Radius, float Falloff) const override;
 };
 
@@ -69,11 +95,19 @@ protected:
 	TArray<float> Mask;		// The alpha mask of the brush
 };
 
+/// Terrain Tools ///
+
 class DYNAMICTERRAIN_API FTerrainTool
 {
 public:
 	// Retrive the name of the tool for the editor UI
 	virtual FText GetName() const = 0;
+
+	// Retrieve the tool's internal name
+	virtual FName GetToolID() const = 0;
+
+	// Retrieve the tool's ID value
+	virtual TerrainToolID GetID() const = 0;
 
 	// Calculate a brush mask using the currently selected brush
 	virtual FBrushStroke GetStroke(FVector2D Center) const = 0;
@@ -121,6 +155,10 @@ public:
 	virtual FBrushStroke GetStroke(FVector2D Center) const override;
 
 	virtual FText GetName() const override;
+	virtual FName GetToolID() const;
+	virtual TerrainToolID GetID() const;
+
+	const static FName ToolID;
 };
 
 // A tool for smoothing terrain
@@ -130,6 +168,10 @@ public:
 	virtual FBrushStroke GetStroke(FVector2D Center) const override;
 
 	virtual FText GetName() const override;
+	virtual FName GetToolID() const;
+	virtual TerrainToolID GetID() const;
+
+	const static FName ToolID;
 };
 
 // A tool for flattening terrain
@@ -139,4 +181,103 @@ public:
 	virtual FBrushStroke GetStroke(FVector2D Center) const override;
 
 	virtual FText GetName() const override;
+	virtual FName GetToolID() const;
+	virtual TerrainToolID GetID() const;
+
+	const static FName ToolID;
+};
+
+/// Tool and Brush Sets ///
+
+class DYNAMICTERRAIN_API FToolSet
+{
+public:
+	FToolSet()
+	{
+		// Create tools
+		Tools.SetNum((int)TerrainToolID::NUM);
+		Tools[(int)TerrainToolID::SCULPT] = new FSculptTool;
+		Tools[(int)TerrainToolID::SMOOTH] = new FSmoothTool;
+		Tools[(int)TerrainToolID::FLATTEN] = new FFlattenTool;
+
+		ActiveTool = Tools[0];
+	}
+	~FToolSet()
+	{
+		for (int32 i = 0; i < Tools.Num(); ++i)
+		{
+			delete Tools[i];
+		}
+		Tools.Empty();
+	}
+
+	// Set the active tool
+	void Set(TerrainToolID Tool)
+	{
+		if (Tool != TerrainToolID::NUM)
+		{
+			ActiveTool = Tools[(int)Tool];
+		}
+	}
+	// Get the active tool
+	FTerrainTool* Get()
+	{
+		return ActiveTool;
+	}
+	// Get the active tool's ID
+	TerrainToolID ID()
+	{
+		return ActiveTool->GetID();
+	}
+
+private:
+	TArray<FTerrainTool*> Tools;
+	FTerrainTool* ActiveTool;
+};
+
+class DYNAMICTERRAIN_API FBrushSet
+{
+public:
+	FBrushSet()
+	{
+		// Create brushes
+		Brushes.SetNum((int)TerrainBrushID::NUM);
+		Brushes[(int)TerrainBrushID::LINEAR] = new FBrushLinear;
+		Brushes[(int)TerrainBrushID::SMOOTH] = new FBrushSmooth;
+		Brushes[(int)TerrainBrushID::ROUND] = new FBrushRound;
+		Brushes[(int)TerrainBrushID::SPHERE] = new FBrushSphere;
+
+		ActiveBrush = Brushes[0];
+	}
+	~FBrushSet()
+	{
+		for (int32 i = 0; i < Brushes.Num(); ++i)
+		{
+			delete Brushes[i];
+		}
+		Brushes.Empty();
+	}
+
+	// Set the active brush
+	void Set(TerrainBrushID Brush)
+	{
+		if (Brush != TerrainBrushID::NUM)
+		{
+			ActiveBrush = Brushes[(int)Brush];
+		}
+	}
+	// Get the active brush
+	FTerrainBrush* Get()
+	{
+		return ActiveBrush;
+	}
+	// Get the active brush's ID
+	TerrainBrushID ID()
+	{
+		return ActiveBrush->GetID();
+	}
+
+private:
+	TArray<FTerrainBrush*> Brushes;
+	FTerrainBrush* ActiveBrush;
 };
