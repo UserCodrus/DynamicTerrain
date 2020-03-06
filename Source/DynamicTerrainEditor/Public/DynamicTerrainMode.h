@@ -58,13 +58,15 @@ public:
 	// Always returns true because this mode uses toolkits
 	bool UsesToolkits() const override;
 
-	/// Helper Functions ///
+	/// Command Functions ///
 
 	// Get the command list from the mode toolkit
 	TSharedRef<FUICommandList> GetCommandList() const;
 
 	// Get the tools for this mode
 	FToolSet* GetToolSet();
+	// Get the brushes for this mode
+	FBrushSet* GetBrushSet();
 
 	// Get the ID of the current mode
 	TerrainModeID GetMode();
@@ -79,13 +81,18 @@ public:
 	UDynamicTerrainSettings* Settings;
 
 protected:
+	// Activates the tool when clicking
+	bool UseTool = false;
+	// Inverts the tool when shift is held
+	bool InvertTool = false;
+
 	// Tool brushes
 	FBrushSet Brushes;
 	// Terrain tools
 	FToolSet Tools;
+
 	// Tool modes
 	TArray<FDynamicTerrainToolMode*> Modes;
-
 	// The currently selected mode
 	FDynamicTerrainToolMode* CurrentMode = nullptr;
 

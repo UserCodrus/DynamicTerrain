@@ -31,6 +31,11 @@ void FDynamicTerrainStyle::Initialize()
 	StyleSet->Set("Plugins.Tool.Smooth", new FSlateImageBrush(content / "icon_Test.png", size));
 	StyleSet->Set("Plugins.Tool.Flatten", new FSlateImageBrush(content / "icon_Test.png", size));
 
+	StyleSet->Set("Plugins.Brush.Linear", new FSlateImageBrush(content / "icon_Test.png", size));
+	StyleSet->Set("Plugins.Brush.Smooth", new FSlateImageBrush(content / "icon_Test.png", size));
+	StyleSet->Set("Plugins.Brush.Round", new FSlateImageBrush(content / "icon_Test.png", size));
+	StyleSet->Set("Plugins.Brush.Sphere", new FSlateImageBrush(content / "icon_Test.png", size));
+
 	FSlateStyleRegistry::RegisterSlateStyle(*StyleSet.Get());
 }
 

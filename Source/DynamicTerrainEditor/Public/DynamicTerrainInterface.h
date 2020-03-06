@@ -25,11 +25,18 @@ public:
 	TSharedPtr<FUICommandInfo> SmoothTool;
 	TSharedPtr<FUICommandInfo> FlattenTool;
 
+	TSharedPtr<FUICommandInfo> LinearBrush;
+	TSharedPtr<FUICommandInfo> SmoothBrush;
+	TSharedPtr<FUICommandInfo> RoundBrush;
+	TSharedPtr<FUICommandInfo> SphereBrush;
+
 private:
 	// Map a command to an interface mode
 	void MapCommandToMode(FDynamicTerrainModeToolkit* Toolkit, TSharedPtr<FUICommandInfo> Command, TerrainModeID ModeID) const;
 	// Map a command to an interface tool
 	void MapCommandToTool(FDynamicTerrainModeToolkit* Toolkit, TSharedPtr<FUICommandInfo> Command, TerrainToolID ToolID) const;
+	// Map a command to an interface tool
+	void MapCommandToBrush(FDynamicTerrainModeToolkit* Toolkit, TSharedPtr<FUICommandInfo> Command, TerrainBrushID BrushID) const;
 };
 
 class FDynamicTerrainDetails : public IDetailCustomization

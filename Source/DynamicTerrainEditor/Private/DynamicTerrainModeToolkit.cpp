@@ -135,12 +135,13 @@ void FDynamicTerrainModeToolkit::ChangeTool(TerrainToolID ToolID)
 	if (mode != nullptr)
 	{
 		mode->GetToolSet()->Set(ToolID);
+		mode->GetToolSet()->Get()->SetBrush(mode->GetBrushSet()->Get());
 	}
 }
 
 bool FDynamicTerrainModeToolkit::IsToolEnabled(TerrainToolID ToolID)
 {
-	// Tools are alway available if their buttons are clickable
+	// Tools are always available if their buttons are clickable
 	FDynamicTerrainMode* mode = (FDynamicTerrainMode*)GetEditorMode();
 	if (mode != nullptr)
 	{
@@ -155,6 +156,37 @@ bool FDynamicTerrainModeToolkit::IsToolActive(TerrainToolID ToolID)
 	if (mode != nullptr)
 	{
 		return mode->GetToolSet()->ID() == ToolID;
+	}
+	return false;
+}
+
+void FDynamicTerrainModeToolkit::ChangeBrush(TerrainBrushID BrushID)
+{
+	FDynamicTerrainMode* mode = (FDynamicTerrainMode*)GetEditorMode();
+	if (mode != nullptr)
+	{
+		mode->GetBrushSet()->Set(BrushID);
+		mode->GetToolSet()->Get()->SetBrush(mode->GetBrushSet()->Get());
+	}
+}
+
+bool FDynamicTerrainModeToolkit::IsBrushEnabled(TerrainBrushID BrushID)
+{
+	// Brushes are always available if their buttons are clickable
+	FDynamicTerrainMode* mode = (FDynamicTerrainMode*)GetEditorMode();
+	if (mode != nullptr)
+	{
+		return true;
+	}
+	return false;
+}
+
+bool FDynamicTerrainModeToolkit::IsBrushActive(TerrainBrushID BrushID)
+{
+	FDynamicTerrainMode* mode = (FDynamicTerrainMode*)GetEditorMode();
+	if (mode != nullptr)
+	{
+		return mode->GetBrushSet()->ID() == BrushID;
 	}
 	return false;
 }

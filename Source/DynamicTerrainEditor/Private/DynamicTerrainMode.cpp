@@ -51,6 +51,9 @@ void FDynamicTerrainMode::Enter()
 		break;
 	}
 
+	// Set the current brush
+	Tools.Get()->SetBrush(Brushes.Get());
+
 	//SelectNone();
 }
 
@@ -89,7 +92,24 @@ void FDynamicTerrainMode::Tick(FEditorViewportClient* ViewportClient, float Delt
 	// Position the brush and apply it if the tool is active
 	if (Terrain != nullptr)
 	{
+		FTerrainTool* tool = Tools.Get();
+
+		// Adjust the brush display
 		Terrain->SetBrushPosition(hit.Location);
+		Terrain->SetBrushSize(tool->Size, tool->Falloff);
+
+		if (UseTool)
+		{
+			// Set properties of the current tool
+			tool->Select(Terrain);
+			tool->Invert = InvertTool;
+
+			// Apply the tool
+			tool->Apply(tool->WorldVectorToMapVector(hit.Location), DeltaTime);
+
+			// Apply changes to the terrain
+			Terrain->Update();
+		}
 	}
 }
 
@@ -106,18 +126,37 @@ bool FDynamicTerrainMode::HandleClick(FEditorViewportClient* ViewportClient, HHi
 
 bool FDynamicTerrainMode::InputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
 {
-	// Handle left clicks here when a tool is selected
+	// Handle left clicks
 	if (Key == EKeys::LeftMouseButton)
 	{
 		if (Event == EInputEvent::IE_Pressed)
 		{
 			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::White, "Click");
 			Viewport->CaptureMouse(true);
+
+			UseTool = true;
 		}
 		else if (Event == EInputEvent::IE_Released)
 		{
 			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::White, "Unclick");
 			Viewport->CaptureMouse(false);
+
+			UseTool = false;
+		}
+
+		return true;
+	}
+
+	// Handle modifier keys
+	if (Key == EKeys::LeftShift)
+	{
+		if (Event == EInputEvent::IE_Pressed)
+		{
+			InvertTool = true;
+		}
+		else if (Event == EInputEvent::IE_Released)
+		{
+			InvertTool = false;
 		}
 
 		return true;
@@ -131,7 +170,7 @@ bool FDynamicTerrainMode::UsesToolkits() const
 	return true;
 }
 
-/// Helper Functions ///
+/// Command Functions ///
 
 TSharedRef<FUICommandList> FDynamicTerrainMode::GetCommandList() const
 {
@@ -163,4 +202,9 @@ void FDynamicTerrainMode::SetMode(TerrainModeID ModeID)
 FToolSet* FDynamicTerrainMode::GetToolSet()
 {
 	return &Tools;
+}
+
+FBrushSet* FDynamicTerrainMode::GetBrushSet()
+{
+	return &Brushes;
 }

@@ -29,6 +29,10 @@ public:
 	bool IsToolEnabled(TerrainToolID ToolID);
 	bool IsToolActive(TerrainToolID ToolID);
 
+	void ChangeBrush(TerrainBrushID BrushID);
+	bool IsBrushEnabled(TerrainBrushID BrushID);
+	bool IsBrushActive(TerrainBrushID BrushID);
+
 protected:
 	TSharedPtr<IDetailsView> DetailsPanel;
 	TSharedPtr<SWidget> ToolkitWidget;
