@@ -51,9 +51,6 @@ void FDynamicTerrainMode::Enter()
 		break;
 	}
 
-	// Set the current brush
-	Tools.Get()->SetBrush(Brushes.Get());
-
 	//SelectNone();
 }
 
@@ -92,7 +89,7 @@ void FDynamicTerrainMode::Tick(FEditorViewportClient* ViewportClient, float Delt
 	// Position the brush and apply it if the tool is active
 	if (Terrain != nullptr)
 	{
-		FTerrainTool* tool = Tools.Get();
+		FTerrainTool* tool = Tools.GetTool();
 
 		// Adjust the brush display
 		Terrain->SetBrushPosition(hit.Location);
@@ -101,11 +98,10 @@ void FDynamicTerrainMode::Tick(FEditorViewportClient* ViewportClient, float Delt
 		if (UseTool)
 		{
 			// Set properties of the current tool
-			tool->Select(Terrain);
 			tool->Invert = InvertTool;
 
 			// Apply the tool
-			tool->Apply(tool->WorldVectorToMapVector(hit.Location), DeltaTime);
+			tool->Apply(Terrain, hit.Location, DeltaTime);
 
 			// Apply changes to the terrain
 			Terrain->Update();
@@ -199,12 +195,7 @@ void FDynamicTerrainMode::SetMode(TerrainModeID ModeID)
 	GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::White, out);
 }
 
-FToolSet* FDynamicTerrainMode::GetToolSet()
+FToolSet* FDynamicTerrainMode::GetTools()
 {
 	return &Tools;
-}
-
-FBrushSet* FDynamicTerrainMode::GetBrushSet()
-{
-	return &Brushes;
 }

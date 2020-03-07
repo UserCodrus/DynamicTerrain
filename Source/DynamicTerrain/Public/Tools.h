@@ -102,36 +102,25 @@ class DYNAMICTERRAIN_API FTerrainTool
 public:
 	// Retrive the name of the tool for the editor UI
 	virtual FText GetName() const = 0;
-
 	// Retrieve the tool's internal name
 	virtual FName GetToolID() const = 0;
-
 	// Retrieve the tool's ID value
 	virtual TerrainToolID GetID() const = 0;
-
-	// Calculate a brush mask using the currently selected brush
-	virtual FBrushStroke GetStroke(FVector2D Center) const = 0;
-
-	virtual void Tick(float DeltaTime);
-
-	virtual void Activate();
-	virtual void Deactivate();
-
-	// Select a specific terrain object
-	virtual void Select(ATerrain* Target);
 	
 	// Select a brush
 	virtual void SetBrush(FTerrainBrush* NewBrush);
 
-	// Apply the tool to the terrain
-	virtual void Apply(FVector2D Center, float Delta) const;
+	// Apply the tool to a terrain
+	virtual void Apply(ATerrain* Terrain, FVector Center, float Delta) const;
+	// Apply the tool directly to a heightmap
+	virtual void Apply(UHeightMap* Map, FVector2D Center, float Delta) const;
 
 	// Get the location of the mouse cursor on the terrain
-	bool MouseToTerrainPosition(const FSceneView* View, FHitResult& Result);
-	bool MouseToTerrainPosition(const APlayerController* Controller, FHitResult& Result);
+	bool MouseToTerrainPosition(ATerrain* Terrain, const FSceneView* View, FHitResult& Result) const;
+	bool MouseToTerrainPosition(ATerrain* Terrain, const APlayerController* Controller, FHitResult& Result) const;
 
 	// Convert a world vector to heightmap coordinates
-	FVector2D WorldVectorToMapVector(FVector WorldPosition);
+	FVector2D WorldVectorToMapVector(ATerrain* Terrain, FVector WorldPosition) const;
 
 	float Size = 10.0f;				// The radius of the tool circle
 	float Strength = 1.0f;			// The strength of the tool
@@ -142,17 +131,17 @@ public:
 	static float TraceDistance;		// The distance to check for the mouse cursor touching the terrain
 
 protected:
-	ATerrain* Terrain = nullptr;	// The currently selected terrain object
-	FTerrainBrush* Brush = nullptr;	// The currently selected brush
+	// Calculate a brush mask using the currently selected brush
+	virtual FBrushStroke GetStroke(UHeightMap* Map, FVector2D Center) const = 0;
 
-	bool Active = false;			// Set to true when the tool should operate every tick
+	FTerrainBrush* Brush = nullptr;	// The currently selected brush
 };
 
 // A tool for sculpting the terrain
 class DYNAMICTERRAIN_API FSculptTool : public FTerrainTool
 {
 public:
-	virtual FBrushStroke GetStroke(FVector2D Center) const override;
+	virtual FBrushStroke GetStroke(UHeightMap* Map, FVector2D Center) const override;
 
 	virtual FText GetName() const override;
 	virtual FName GetToolID() const;
@@ -165,7 +154,7 @@ public:
 class DYNAMICTERRAIN_API FSmoothTool : public FTerrainTool
 {
 public:
-	virtual FBrushStroke GetStroke(FVector2D Center) const override;
+	virtual FBrushStroke GetStroke(UHeightMap* Map, FVector2D Center) const override;
 
 	virtual FText GetName() const override;
 	virtual FName GetToolID() const;
@@ -178,7 +167,7 @@ public:
 class DYNAMICTERRAIN_API FFlattenTool : public FTerrainTool
 {
 public:
-	virtual FBrushStroke GetStroke(FVector2D Center) const override;
+	virtual FBrushStroke GetStroke(UHeightMap* Map, FVector2D Center) const override;
 
 	virtual FText GetName() const override;
 	virtual FName GetToolID() const;
@@ -192,92 +181,27 @@ public:
 class DYNAMICTERRAIN_API FToolSet
 {
 public:
-	FToolSet()
-	{
-		// Create tools
-		Tools.SetNum((int)TerrainToolID::NUM);
-		Tools[(int)TerrainToolID::SCULPT] = new FSculptTool;
-		Tools[(int)TerrainToolID::SMOOTH] = new FSmoothTool;
-		Tools[(int)TerrainToolID::FLATTEN] = new FFlattenTool;
-
-		ActiveTool = Tools[0];
-	}
-	~FToolSet()
-	{
-		for (int32 i = 0; i < Tools.Num(); ++i)
-		{
-			delete Tools[i];
-		}
-		Tools.Empty();
-	}
+	FToolSet();
+	~FToolSet();
 
 	// Set the active tool
-	void Set(TerrainToolID Tool)
-	{
-		if (Tool != TerrainToolID::NUM)
-		{
-			ActiveTool = Tools[(int)Tool];
-		}
-	}
+	void SetTool(TerrainToolID Tool);
 	// Get the active tool
-	FTerrainTool* Get()
-	{
-		return ActiveTool;
-	}
+	FTerrainTool* GetTool();
 	// Get the active tool's ID
-	TerrainToolID ID()
-	{
-		return ActiveTool->GetID();
-	}
+	TerrainToolID ToolID();
+
+	// Set the active brush
+	void SetBrush(TerrainBrushID Brush);
+	// Get the active brush
+	FTerrainBrush* GetBrush();
+	// Get the active brush's ID
+	TerrainBrushID BrushID();
 
 private:
 	TArray<FTerrainTool*> Tools;
 	FTerrainTool* ActiveTool;
-};
 
-class DYNAMICTERRAIN_API FBrushSet
-{
-public:
-	FBrushSet()
-	{
-		// Create brushes
-		Brushes.SetNum((int)TerrainBrushID::NUM);
-		Brushes[(int)TerrainBrushID::LINEAR] = new FBrushLinear;
-		Brushes[(int)TerrainBrushID::SMOOTH] = new FBrushSmooth;
-		Brushes[(int)TerrainBrushID::ROUND] = new FBrushRound;
-		Brushes[(int)TerrainBrushID::SPHERE] = new FBrushSphere;
-
-		ActiveBrush = Brushes[0];
-	}
-	~FBrushSet()
-	{
-		for (int32 i = 0; i < Brushes.Num(); ++i)
-		{
-			delete Brushes[i];
-		}
-		Brushes.Empty();
-	}
-
-	// Set the active brush
-	void Set(TerrainBrushID Brush)
-	{
-		if (Brush != TerrainBrushID::NUM)
-		{
-			ActiveBrush = Brushes[(int)Brush];
-		}
-	}
-	// Get the active brush
-	FTerrainBrush* Get()
-	{
-		return ActiveBrush;
-	}
-	// Get the active brush's ID
-	TerrainBrushID ID()
-	{
-		return ActiveBrush->GetID();
-	}
-
-private:
 	TArray<FTerrainBrush*> Brushes;
 	FTerrainBrush* ActiveBrush;
 };

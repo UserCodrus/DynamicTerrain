@@ -64,9 +64,7 @@ public:
 	TSharedRef<FUICommandList> GetCommandList() const;
 
 	// Get the tools for this mode
-	FToolSet* GetToolSet();
-	// Get the brushes for this mode
-	FBrushSet* GetBrushSet();
+	FToolSet* GetTools();
 
 	// Get the ID of the current mode
 	TerrainModeID GetMode();
@@ -86,8 +84,6 @@ protected:
 	// Inverts the tool when shift is held
 	bool InvertTool = false;
 
-	// Tool brushes
-	FBrushSet Brushes;
 	// Terrain tools
 	FToolSet Tools;
 

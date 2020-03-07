@@ -134,8 +134,7 @@ void FDynamicTerrainModeToolkit::ChangeTool(TerrainToolID ToolID)
 	FDynamicTerrainMode* mode = (FDynamicTerrainMode*)GetEditorMode();
 	if (mode != nullptr)
 	{
-		mode->GetToolSet()->Set(ToolID);
-		mode->GetToolSet()->Get()->SetBrush(mode->GetBrushSet()->Get());
+		mode->GetTools()->SetTool(ToolID);
 	}
 }
 
@@ -155,7 +154,7 @@ bool FDynamicTerrainModeToolkit::IsToolActive(TerrainToolID ToolID)
 	FDynamicTerrainMode* mode = (FDynamicTerrainMode*)GetEditorMode();
 	if (mode != nullptr)
 	{
-		return mode->GetToolSet()->ID() == ToolID;
+		return mode->GetTools()->ToolID() == ToolID;
 	}
 	return false;
 }
@@ -165,8 +164,7 @@ void FDynamicTerrainModeToolkit::ChangeBrush(TerrainBrushID BrushID)
 	FDynamicTerrainMode* mode = (FDynamicTerrainMode*)GetEditorMode();
 	if (mode != nullptr)
 	{
-		mode->GetBrushSet()->Set(BrushID);
-		mode->GetToolSet()->Get()->SetBrush(mode->GetBrushSet()->Get());
+		mode->GetTools()->SetBrush(BrushID);
 	}
 }
 
@@ -186,7 +184,7 @@ bool FDynamicTerrainModeToolkit::IsBrushActive(TerrainBrushID BrushID)
 	FDynamicTerrainMode* mode = (FDynamicTerrainMode*)GetEditorMode();
 	if (mode != nullptr)
 	{
-		return mode->GetBrushSet()->ID() == BrushID;
+		return mode->GetTools()->BrushID() == BrushID;
 	}
 	return false;
 }

@@ -77,42 +77,24 @@ float FBrushSphere::GetStrength(float Distance, float Radius, float Falloff) con
 
 float FTerrainTool::TraceDistance = 50000;
 
-void FTerrainTool::Tick(float DeltaTime)
-{
-
-}
-
-void FTerrainTool::Activate()
-{
-	Active = true;
-}
-
-void FTerrainTool::Deactivate()
-{
-	Active = false;
-}
-
-void FTerrainTool::Select(ATerrain* Target)
-{
-	Terrain = Target;
-}
-
 void FTerrainTool::SetBrush(FTerrainBrush* NewBrush)
 {
 	Brush = NewBrush;
 }
 
-void FTerrainTool::Apply(FVector2D Center, float Delta) const
+void FTerrainTool::Apply(ATerrain* Terrain, FVector Center, float Delta) const
 {
+	FVector2D MapCenter = WorldVectorToMapVector(Terrain, Center);
+
 	int32 width_x = Terrain->GetMap()->GetWidthX();
 	int32 width_y = Terrain->GetMap()->GetWidthY();
-	if (Center.X < 0 || Center.Y < 0 || Center.X > width_x || Center.Y > width_y)
+	if (MapCenter.X < 0 || MapCenter.Y < 0 || MapCenter.X > width_x || MapCenter.Y > width_y)
 	{
 		return;
 	}
 
 	// Get the mask for the tool
-	FBrushStroke mask = GetStroke(Center);
+	FBrushStroke mask = GetStroke(Terrain->GetMap(), MapCenter);
 	FIntRect bounds = mask.GetBounds();
 	
 	// Apply the mask to the heightmap
@@ -130,7 +112,32 @@ void FTerrainTool::Apply(FVector2D Center, float Delta) const
 	Terrain->UpdateRange(bounds);
 }
 
-bool FTerrainTool::MouseToTerrainPosition(const FSceneView* View, FHitResult& Result)
+void FTerrainTool::Apply(UHeightMap* Map, FVector2D Center, float Delta) const
+{
+	int32 width_x = Map->GetWidthX();
+	int32 width_y = Map->GetWidthY();
+	if (Center.X < 0 || Center.Y < 0 || Center.X > width_x || Center.Y > width_y)
+	{
+		return;
+	}
+
+	// Get the mask for the tool
+	FBrushStroke mask = GetStroke(Map, Center);
+	FIntRect bounds = mask.GetBounds();
+
+	// Apply the mask to the heightmap
+	for (int x = bounds.Min.X; x < bounds.Max.X; ++x)
+	{
+		for (int y = bounds.Min.Y; y < bounds.Max.Y; ++y)
+		{
+			// Change the vertex height
+			float height = Map->GetHeight(x, y);
+			Map->SetHeight(x, y, height + mask.GetData(x, y) * Delta * Strength);
+		}
+	}
+}
+
+bool FTerrainTool::MouseToTerrainPosition(ATerrain* Terrain, const FSceneView* View, FHitResult& Result) const
 {
 	if (Terrain != nullptr && View != nullptr)
 	{
@@ -169,7 +176,7 @@ bool FTerrainTool::MouseToTerrainPosition(const FSceneView* View, FHitResult& Re
 	return false;
 }
 
-bool FTerrainTool::MouseToTerrainPosition(const APlayerController* Controller, FHitResult& Result)
+bool FTerrainTool::MouseToTerrainPosition(ATerrain* Terrain, const APlayerController* Controller, FHitResult& Result) const
 {
 	if (Terrain != nullptr && Controller != nullptr)
 	{
@@ -202,7 +209,7 @@ bool FTerrainTool::MouseToTerrainPosition(const APlayerController* Controller, F
 	return false;
 }
 
-FVector2D FTerrainTool::WorldVectorToMapVector(FVector WorldPosition)
+FVector2D FTerrainTool::WorldVectorToMapVector(ATerrain* Terrain, FVector WorldPosition) const
 {
 	if (Terrain == nullptr)
 		return FVector2D();
@@ -226,10 +233,8 @@ FVector2D FTerrainTool::WorldVectorToMapVector(FVector WorldPosition)
 
 /// Sculpt Tool ///
 
-FBrushStroke FSculptTool::GetStroke(FVector2D Center) const
+FBrushStroke FSculptTool::GetStroke(UHeightMap* Map, FVector2D Center) const
 {
-	UHeightMap* map = Terrain->GetMap();
-
 	// Get the outer bounds of the circle
 	FIntRect bounds;
 	bounds.Min.X = FMath::FloorToInt(Center.X - Size - Falloff);
@@ -246,13 +251,13 @@ FBrushStroke FSculptTool::GetStroke(FVector2D Center) const
 	{
 		bounds.Min.Y = 0;
 	}
-	if (bounds.Max.X > map->GetWidthX())
+	if (bounds.Max.X > Map->GetWidthX())
 	{
-		bounds.Max.X = map->GetWidthX();
+		bounds.Max.X = Map->GetWidthX();
 	}
-	if (bounds.Max.Y > map->GetWidthY())
+	if (bounds.Max.Y > Map->GetWidthY())
 	{
-		bounds.Max.Y = map->GetWidthY();
+		bounds.Max.Y = Map->GetWidthY();
 	}
 
 	// Invert the mask
@@ -294,10 +299,8 @@ TerrainToolID FSculptTool::GetID() const
 
 /// Smooth Tool ///
 
-FBrushStroke FSmoothTool::GetStroke(FVector2D Center) const
+FBrushStroke FSmoothTool::GetStroke(UHeightMap* Map, FVector2D Center) const
 {
-	UHeightMap* map = Terrain->GetMap();
-
 	// Get the outer bounds of the circle
 	FIntRect bounds;
 	bounds.Min.X = FMath::FloorToInt(Center.X - Size - Falloff);
@@ -314,13 +317,13 @@ FBrushStroke FSmoothTool::GetStroke(FVector2D Center) const
 	{
 		bounds.Min.Y = 1;
 	}
-	if (bounds.Max.X > map->GetWidthX() - 1)
+	if (bounds.Max.X > Map->GetWidthX() - 1)
 	{
-		bounds.Max.X = map->GetWidthX() - 1;
+		bounds.Max.X = Map->GetWidthX() - 1;
 	}
-	if (bounds.Max.Y > map->GetWidthY() - 1)
+	if (bounds.Max.Y > Map->GetWidthY() - 1)
 	{
-		bounds.Max.Y = map->GetWidthY() - 1;
+		bounds.Max.Y = Map->GetWidthY() - 1;
 	}
 
 	// Invert the mask
@@ -339,11 +342,11 @@ FBrushStroke FSmoothTool::GetStroke(FVector2D Center) const
 			float dist = FVector2D::Distance(Center, FVector2D(x, y));
 
 			// Set the mask to the difference between the average height of the surrounding area and the current point
-			float h00 = map->GetHeight(x, y);
-			float h01 = map->GetHeight(x - 1, y);
-			float h21 = map->GetHeight(x + 1, y);
-			float h10 = map->GetHeight(x, y - 1);
-			float h12 = map->GetHeight(x, y + 1);
+			float h00 = Map->GetHeight(x, y);
+			float h01 = Map->GetHeight(x - 1, y);
+			float h21 = Map->GetHeight(x + 1, y);
+			float h10 = Map->GetHeight(x, y - 1);
+			float h12 = Map->GetHeight(x, y + 1);
 
 			float hdiff = (h01 + h21 + h10 + h12) / 4.0f - h00;
 
@@ -371,10 +374,8 @@ TerrainToolID FSmoothTool::GetID() const
 
 /// Flatten Tool ///
 
-FBrushStroke FFlattenTool::GetStroke(FVector2D Center) const
+FBrushStroke FFlattenTool::GetStroke(UHeightMap* Map, FVector2D Center) const
 {
-	UHeightMap* map = Terrain->GetMap();
-
 	// Get the outer bounds of the circle
 	FIntRect bounds;
 	bounds.Min.X = FMath::FloorToInt(Center.X - Size - Falloff);
@@ -391,13 +392,13 @@ FBrushStroke FFlattenTool::GetStroke(FVector2D Center) const
 	{
 		bounds.Min.Y = 0;
 	}
-	if (bounds.Max.X > map->GetWidthX())
+	if (bounds.Max.X > Map->GetWidthX())
 	{
-		bounds.Max.X = map->GetWidthX();
+		bounds.Max.X = Map->GetWidthX();
 	}
-	if (bounds.Max.Y > map->GetWidthY())
+	if (bounds.Max.Y > Map->GetWidthY())
 	{
-		bounds.Max.Y = map->GetWidthY();
+		bounds.Max.Y = Map->GetWidthY();
 	}
 
 	// Invert the mask
@@ -413,8 +414,8 @@ FBrushStroke FFlattenTool::GetStroke(FVector2D Center) const
 	float DX = Center.X - X;
 	float DY = Center.Y - Y;
 	float height = FMath::Lerp(
-		FMath::Lerp(map->GetHeight(X, Y), map->GetHeight(X + 1, Y), DX), 
-		FMath::Lerp(map->GetHeight(X, Y + 1), map->GetHeight(X + 1, Y + 1), DX),
+		FMath::Lerp(Map->GetHeight(X, Y), Map->GetHeight(X + 1, Y), DX), 
+		FMath::Lerp(Map->GetHeight(X, Y + 1), Map->GetHeight(X + 1, Y + 1), DX),
 		DY);
 
 	// Calculate the brusk mask using the current brush
@@ -426,7 +427,7 @@ FBrushStroke FFlattenTool::GetStroke(FVector2D Center) const
 			float dist = FVector2D::Distance(Center, FVector2D(x, y));
 
 			// Set the mask to the difference between the center height and the current point
-			stroke.GetData(x, y) = (height - map->GetHeight(x, y)) * Brush->GetStrength(dist, Size, Falloff) * inversion;
+			stroke.GetData(x, y) = (height - Map->GetHeight(x, y)) * Brush->GetStrength(dist, Size, Falloff) * inversion;
 		}
 	}
 
@@ -446,6 +447,83 @@ FName FFlattenTool::GetToolID() const
 TerrainToolID FFlattenTool::GetID() const
 {
 	return TerrainToolID::FLATTEN;
+}
+
+/// Tool and Brush Sets ///
+
+FToolSet::FToolSet()
+{
+	// Create tools
+	Tools.SetNum((int)TerrainToolID::NUM);
+	Tools[(int)TerrainToolID::SCULPT] = new FSculptTool;
+	Tools[(int)TerrainToolID::SMOOTH] = new FSmoothTool;
+	Tools[(int)TerrainToolID::FLATTEN] = new FFlattenTool;
+
+	ActiveTool = Tools[0];
+
+	// Create brushes
+	Brushes.SetNum((int)TerrainBrushID::NUM);
+	Brushes[(int)TerrainBrushID::LINEAR] = new FBrushLinear;
+	Brushes[(int)TerrainBrushID::SMOOTH] = new FBrushSmooth;
+	Brushes[(int)TerrainBrushID::ROUND] = new FBrushRound;
+	Brushes[(int)TerrainBrushID::SPHERE] = new FBrushSphere;
+
+	ActiveBrush = Brushes[0];
+	ActiveTool->SetBrush(ActiveBrush);
+}
+
+FToolSet::~FToolSet()
+{
+	for (int32 i = 0; i < Tools.Num(); ++i)
+	{
+		delete Tools[i];
+	}
+	Tools.Empty();
+
+	for (int32 i = 0; i < Brushes.Num(); ++i)
+	{
+		delete Brushes[i];
+	}
+	Brushes.Empty();
+}
+
+void FToolSet::SetTool(TerrainToolID Tool)
+{
+	if (Tool != TerrainToolID::NUM)
+	{
+		ActiveTool = Tools[(int)Tool];
+		ActiveTool->SetBrush(ActiveBrush);
+	}
+}
+
+FTerrainTool* FToolSet::GetTool()
+{
+	return ActiveTool;
+}
+
+TerrainToolID FToolSet::ToolID()
+{
+	return ActiveTool->GetID();
+}
+
+// Set the active brush
+void FToolSet::SetBrush(TerrainBrushID Brush)
+{
+	if (Brush != TerrainBrushID::NUM)
+	{
+		ActiveBrush = Brushes[(int)Brush];
+		ActiveTool->SetBrush(ActiveBrush);
+	}
+}
+// Get the active brush
+FTerrainBrush* FToolSet::GetBrush()
+{
+	return ActiveBrush;
+}
+// Get the active brush's ID
+TerrainBrushID FToolSet::BrushID()
+{
+	return ActiveBrush->GetID();
 }
 
 #undef LOCTEXT_NAMESPACE
