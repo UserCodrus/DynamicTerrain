@@ -4,6 +4,7 @@
 #include "Tools.h"
 
 #include "EditorModeManager.h"
+#include "DetailLayoutBuilder.h"
 
 #define LOCTEXT_NAMESPACE "TerrainInterface"
 
@@ -104,6 +105,14 @@ void FDynamicTerrainDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilde
 		TSharedPtr<FUICommandList> command_list = mode->GetCommandList();
 
 		///TODO
+		if (mode->GetMode() == TerrainModeID::SCULPT)
+		{
+
+		}
+
+		DetailBuilder.GetProperty("Strength")->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FDynamicTerrainDetails::UpdateBrush));
+		DetailBuilder.GetProperty("Size")->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FDynamicTerrainDetails::UpdateBrush));
+		DetailBuilder.GetProperty("Falloff")->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FDynamicTerrainDetails::UpdateBrush));
 	}
 }
 
@@ -117,7 +126,10 @@ void FDynamicTerrainDetails::UpdateBrush()
 	FDynamicTerrainMode* mode = GetMode();
 	if (mode != nullptr)
 	{
-		///TODO
+		FTerrainTool* tool = mode->GetTools()->GetTool();
+		tool->Strength = mode->Settings->Strength;
+		tool->Size = mode->Settings->Size;
+		tool->Falloff = mode->Settings->Falloff;
 	}
 }
 

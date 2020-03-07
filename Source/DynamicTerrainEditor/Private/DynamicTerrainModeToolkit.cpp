@@ -44,7 +44,7 @@ void FDynamicTerrainModeToolkit::Init(const TSharedPtr< class IToolkitHost >& In
 	FPropertyEditorModule& property_editor = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	FDetailsViewArgs details_args(false, false, false, FDetailsViewArgs::HideNameArea);
 	DetailsPanel = property_editor.CreateDetailView(details_args);
-	///DetailsPanel->SetIsPropertyVisibleDelegate(FIsPropertyVisible::CreateRaw(this, &FVoxelTerrainEdModeToolkit::GetIsPropertyVisible));
+	DetailsPanel->SetIsPropertyVisibleDelegate(FIsPropertyVisible::CreateRaw(this, &FDynamicTerrainModeToolkit::PropertyVisible));
 
 	// Put the editor mode settings in the detail panel
 	FDynamicTerrainMode* mode = (FDynamicTerrainMode*)GetEditorMode();
@@ -187,6 +187,11 @@ bool FDynamicTerrainModeToolkit::IsBrushActive(TerrainBrushID BrushID)
 		return mode->GetTools()->BrushID() == BrushID;
 	}
 	return false;
+}
+
+bool FDynamicTerrainModeToolkit::PropertyVisible(const FPropertyAndParent& Property) const
+{
+	return true;
 }
 
 #undef LOCTEXT_NAMESPACE

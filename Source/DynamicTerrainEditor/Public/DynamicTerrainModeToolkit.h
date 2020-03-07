@@ -33,6 +33,8 @@ public:
 	bool IsBrushEnabled(TerrainBrushID BrushID);
 	bool IsBrushActive(TerrainBrushID BrushID);
 
+	bool PropertyVisible(const FPropertyAndParent& Property) const;
+
 protected:
 	TSharedPtr<IDetailsView> DetailsPanel;
 	TSharedPtr<SWidget> ToolkitWidget;

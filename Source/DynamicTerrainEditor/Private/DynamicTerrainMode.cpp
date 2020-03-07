@@ -47,7 +47,10 @@ void FDynamicTerrainMode::Enter()
 	for (TActorIterator<ATerrain> itr(GetWorld()); itr; ++itr)
 	{
 		Terrain = *itr;
-		Terrain->ShowBrush(true);
+		if (CurrentMode->ModeID == TerrainModeID::SCULPT)
+		{
+			Terrain->ShowBrush(true);
+		}
 		break;
 	}
 
@@ -89,22 +92,25 @@ void FDynamicTerrainMode::Tick(FEditorViewportClient* ViewportClient, float Delt
 	// Position the brush and apply it if the tool is active
 	if (Terrain != nullptr)
 	{
-		FTerrainTool* tool = Tools.GetTool();
-
-		// Adjust the brush display
-		Terrain->SetBrushPosition(hit.Location);
-		Terrain->SetBrushSize(tool->Size, tool->Falloff);
-
-		if (UseTool)
+		if (CurrentMode->ModeID == TerrainModeID::SCULPT)
 		{
-			// Set properties of the current tool
-			tool->Invert = InvertTool;
+			FTerrainTool* tool = Tools.GetTool();
 
-			// Apply the tool
-			tool->Apply(Terrain, hit.Location, DeltaTime);
+			// Adjust the brush display
+			Terrain->SetBrushPosition(hit.Location);
+			Terrain->SetBrushSize(tool->Size, tool->Falloff);
 
-			// Apply changes to the terrain
-			Terrain->Update();
+			if (UseTool)
+			{
+				// Set properties of the current tool
+				tool->Invert = InvertTool;
+
+				// Apply the tool
+				tool->Apply(Terrain, hit.Location, DeltaTime);
+
+				// Apply changes to the terrain
+				Terrain->Update();
+			}
 		}
 	}
 }
@@ -161,6 +167,14 @@ bool FDynamicTerrainMode::InputKey(FEditorViewportClient* ViewportClient, FViewp
 	return false;
 }
 
+void FDynamicTerrainMode::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	FEdMode::AddReferencedObjects(Collector);
+
+	// Add the editor settings
+	Collector.AddReferencedObject(Settings);
+}
+
 bool FDynamicTerrainMode::UsesToolkits() const
 {
 	return true;
@@ -189,6 +203,14 @@ void FDynamicTerrainMode::SetMode(TerrainModeID ModeID)
 	if (ModeID != TerrainModeID::NUM)
 	{
 		CurrentMode = Modes[(int)ModeID];
+		if (ModeID == TerrainModeID::SCULPT)
+		{
+			Terrain->ShowBrush(true);
+		}
+		else
+		{
+			Terrain->ShowBrush(false);
+		}
 	}
 	FString out = "Mode changed to: ";
 	out.Append(CurrentMode->ModeName.ToString());
