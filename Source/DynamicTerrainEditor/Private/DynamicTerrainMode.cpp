@@ -221,3 +221,11 @@ FToolSet* FDynamicTerrainMode::GetTools()
 {
 	return &Tools;
 }
+
+void FDynamicTerrainMode::ToolUpdate()
+{
+	// Update settings panel
+	Settings->Strength = Tools.GetTool()->Strength;
+	Settings->Size = Tools.GetTool()->Size;
+	Settings->Falloff = Tools.GetTool()->Falloff;
+}

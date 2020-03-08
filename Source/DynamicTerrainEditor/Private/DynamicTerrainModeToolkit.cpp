@@ -11,12 +11,6 @@
 
 #define LOCTEXT_NAMESPACE "TerrainTools"
 
-FDynamicTerrainModeToolkit::~FDynamicTerrainModeToolkit()
-{
-	//FPropertyEditorModule& property_editor = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-	//property_editor.UnregisterCustomClassLayout()
-}
-
 /// Engine Functions ///
 
 void FDynamicTerrainModeToolkit::Init(const TSharedPtr< class IToolkitHost >& InitToolkitHost)
@@ -52,9 +46,6 @@ void FDynamicTerrainModeToolkit::Init(const TSharedPtr< class IToolkitHost >& In
 	{
 		DetailsPanel->SetObject(mode->Settings, true);
 	}
-
-	// Create a custom layout using the details panel
-	//property_editor.RegisterCustomClassLayout("DynamicTerrainSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FDynamicTerrainDetails::CreateInstance));
 
 	// Add the mode buttons and details panel
 	SAssignNew(ToolkitWidget, SScrollBox)
@@ -134,7 +125,12 @@ void FDynamicTerrainModeToolkit::ChangeTool(TerrainToolID ToolID)
 	FDynamicTerrainMode* mode = (FDynamicTerrainMode*)GetEditorMode();
 	if (mode != nullptr)
 	{
+		// Change the tool
 		mode->GetTools()->SetTool(ToolID);
+
+		// Refresh the details pane
+		mode->ToolUpdate();
+		DetailsPanel->ForceRefresh();;
 	}
 }
 

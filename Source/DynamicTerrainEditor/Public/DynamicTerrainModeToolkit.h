@@ -8,8 +8,6 @@
 class FDynamicTerrainModeToolkit : public FModeToolkit
 {
 public:
-	~FDynamicTerrainModeToolkit();
-
 	/// Engine Functions ///
 
 	virtual void Init(const TSharedPtr< class IToolkitHost >& InitToolkitHost) override;

@@ -76,6 +76,9 @@ public:
 	// Change the current mode
 	void SetMode(TerrainModeID ModeID);
 
+	// Update the tool settings when the toolkit changes a tool
+	void ToolUpdate();
+
 	// The identifier string for this editor mode
 	const static FEditorModeID DynamicTerrainModeID;
 	// The settings data used to display setting in the editor
