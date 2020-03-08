@@ -44,7 +44,7 @@ void FDynamicTerrainModeToolkit::Init(const TSharedPtr< class IToolkitHost >& In
 	FPropertyEditorModule& property_editor = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	FDetailsViewArgs details_args(false, false, false, FDetailsViewArgs::HideNameArea);
 	DetailsPanel = property_editor.CreateDetailView(details_args);
-	DetailsPanel->SetIsPropertyVisibleDelegate(FIsPropertyVisible::CreateRaw(this, &FDynamicTerrainModeToolkit::PropertyVisible));
+	//DetailsPanel->SetIsPropertyVisibleDelegate(FIsPropertyVisible::CreateRaw(this, &FDynamicTerrainModeToolkit::PropertyVisible));
 
 	// Put the editor mode settings in the detail panel
 	FDynamicTerrainMode* mode = (FDynamicTerrainMode*)GetEditorMode();
@@ -54,7 +54,7 @@ void FDynamicTerrainModeToolkit::Init(const TSharedPtr< class IToolkitHost >& In
 	}
 
 	// Create a custom layout using the details panel
-	property_editor.RegisterCustomClassLayout(FName("DynamicTerrainSettings"), FOnGetDetailCustomizationInstance::CreateStatic(&FDynamicTerrainDetails::CreateInstance));
+	//property_editor.RegisterCustomClassLayout("DynamicTerrainSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FDynamicTerrainDetails::CreateInstance));
 
 	// Add the mode buttons and details panel
 	SAssignNew(ToolkitWidget, SScrollBox)

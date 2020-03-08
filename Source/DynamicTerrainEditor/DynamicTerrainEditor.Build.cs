@@ -24,7 +24,6 @@ public class DynamicTerrainEditor : ModuleRules
 			new string[]
 			{
 				"Core",
-				"UnrealEd",
 				"InputCore",
 				"PropertyEditor",
 				"ProceduralMeshComponent",
@@ -39,6 +38,7 @@ public class DynamicTerrainEditor : ModuleRules
 			{
 				"CoreUObject",
 				"Engine",
+				"UnrealEd",
 				"Slate",
 				"SlateCore",
 				"Projects"

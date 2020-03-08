@@ -3,8 +3,12 @@
 #include "DynamicTerrainStyle.h"
 #include "Tools.h"
 
+#include "Editor.h"
 #include "EditorModeManager.h"
 #include "DetailLayoutBuilder.h"
+#include "DetailCategoryBuilder.h"
+#include "DetailWidgetRow.h"
+#include "Framework/MultiBox/MultiBoxBuilder.h"
 
 #define LOCTEXT_NAMESPACE "TerrainInterface"
 
@@ -104,11 +108,60 @@ void FDynamicTerrainDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilde
 	{
 		TSharedPtr<FUICommandList> command_list = mode->GetCommandList();
 
-		///TODO
-		if (mode->GetMode() == TerrainModeID::SCULPT)
-		{
+		// Create a new category in the detail pane
+		IDetailCategoryBuilder& category = DetailBuilder.EditCategory("Tools", FText::GetEmpty(), ECategoryPriority::Important);
 
-		}
+		// Create the tool selection widget
+		FToolBarBuilder ToolButtons(command_list, FMultiBoxCustomization::None);
+		ToolButtons.AddToolBarButton(FDynamicTerrainEditorCommands::Get().SculptTool, NAME_None,
+			LOCTEXT("SculptToolName", "Sculpt"),
+			LOCTEXT("SculptToolDesc", "Shape terrain by raising or lowering it"),
+			FSlateIcon(FDynamicTerrainStyle::GetName(), "Plugins.Tool.Sculpt"));
+		ToolButtons.AddToolBarButton(FDynamicTerrainEditorCommands::Get().SmoothTool, NAME_None,
+			LOCTEXT("SmoothToolName", "Smooth"),
+			LOCTEXT("SmoothToolDesc", "Smooth out bumpy terrain"),
+			FSlateIcon(FDynamicTerrainStyle::GetName(), "Plugins.Tool.Smooth"));
+		ToolButtons.AddToolBarButton(FDynamicTerrainEditorCommands::Get().FlattenTool, NAME_None,
+			LOCTEXT("FlattenToolName", "Flatten"),
+			LOCTEXT("FlattenToolDesc", "Level the terrain around the cursor"),
+			FSlateIcon(FDynamicTerrainStyle::GetName(), "Plugins.Tool.Flatten"));
+
+		category.AddCustomRow(FText::GetEmpty())
+			[
+				SNew(SBox).Padding(5).HAlign(HAlign_Center)
+				[
+					ToolButtons.MakeWidget()
+				]
+			];
+
+		// Create the brush widget
+		FToolBarBuilder BrushButtons(command_list, FMultiBoxCustomization::None);
+		BrushButtons.AddToolBarButton(FDynamicTerrainEditorCommands::Get().LinearBrush, NAME_None,
+			LOCTEXT("LinearBrushName", "Linear"),
+			LOCTEXT("LinearBrushDesc", "Linear falloff"),
+			FSlateIcon(FDynamicTerrainStyle::GetName(), "Plugins.Brush.Linear"));
+		BrushButtons.AddToolBarButton(FDynamicTerrainEditorCommands::Get().SmoothBrush, NAME_None,
+			LOCTEXT("SmoothBrushName", "Smooth"),
+			LOCTEXT("SmoothBrushDesc", "Smooth falloff"),
+			FSlateIcon(FDynamicTerrainStyle::GetName(), "Plugins.Brush.Smooth"));
+		BrushButtons.AddToolBarButton(FDynamicTerrainEditorCommands::Get().RoundBrush, NAME_None,
+			LOCTEXT("RoundBrushName", "Round"),
+			LOCTEXT("RoundBrushDesc", "Round falloff"),
+			FSlateIcon(FDynamicTerrainStyle::GetName(), "Plugins.Brush.Round"));
+		BrushButtons.AddToolBarButton(FDynamicTerrainEditorCommands::Get().SphereBrush, NAME_None,
+			LOCTEXT("SphereBrushName", "Sphere"),
+			LOCTEXT("SphereBrushDesc", "Sphere falloff"),
+			FSlateIcon(FDynamicTerrainStyle::GetName(), "Plugins.Brush.Sphere"));
+
+		category.AddCustomRow(FText::GetEmpty())
+			[
+				SNew(SBox).Padding(5).HAlign(HAlign_Center)
+				[
+					BrushButtons.MakeWidget()
+				]
+			];
+
+		///TODO
 
 		DetailBuilder.GetProperty("Strength")->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FDynamicTerrainDetails::UpdateBrush));
 		DetailBuilder.GetProperty("Size")->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FDynamicTerrainDetails::UpdateBrush));
