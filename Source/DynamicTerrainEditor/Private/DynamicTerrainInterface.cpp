@@ -9,6 +9,7 @@
 #include "DetailCategoryBuilder.h"
 #include "DetailWidgetRow.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
+#include "Widgets/Input/SButton.h"
 
 #define LOCTEXT_NAMESPACE "TerrainInterface"
 
@@ -107,59 +108,80 @@ void FDynamicTerrainDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilde
 	if (mode != nullptr)
 	{
 		TSharedPtr<FUICommandList> command_list = mode->GetCommandList();
-
-		// Create a new category in the detail pane
-		IDetailCategoryBuilder& category = DetailBuilder.EditCategory("Tools", FText::GetEmpty(), ECategoryPriority::Important);
-
-		// Create the tool selection widget
-		FToolBarBuilder ToolButtons(command_list, FMultiBoxCustomization::None);
-		ToolButtons.AddToolBarButton(FDynamicTerrainEditorCommands::Get().SculptTool, NAME_None,
-			LOCTEXT("SculptToolName", "Sculpt"),
-			LOCTEXT("SculptToolDesc", "Shape terrain by raising or lowering it"),
-			FSlateIcon(FDynamicTerrainStyle::GetName(), "Plugins.Tool.Sculpt"));
-		ToolButtons.AddToolBarButton(FDynamicTerrainEditorCommands::Get().SmoothTool, NAME_None,
-			LOCTEXT("SmoothToolName", "Smooth"),
-			LOCTEXT("SmoothToolDesc", "Smooth out bumpy terrain"),
-			FSlateIcon(FDynamicTerrainStyle::GetName(), "Plugins.Tool.Smooth"));
-		ToolButtons.AddToolBarButton(FDynamicTerrainEditorCommands::Get().FlattenTool, NAME_None,
-			LOCTEXT("FlattenToolName", "Flatten"),
-			LOCTEXT("FlattenToolDesc", "Level the terrain around the cursor"),
-			FSlateIcon(FDynamicTerrainStyle::GetName(), "Plugins.Tool.Flatten"));
-
-		category.AddCustomRow(FText::GetEmpty())
-			[
-				SNew(SBox).Padding(5).HAlign(HAlign_Center)
+		TerrainModeID current_mode = mode->GetMode();
+		
+		if (current_mode == TerrainModeID::MANAGE)
+		{
+			// Add a button to the manager interface
+			IDetailCategoryBuilder& category_manage = DetailBuilder.EditCategory("Terrain Settings", FText::GetEmpty(), ECategoryPriority::Important);
+			category_manage.AddCustomRow(FText::GetEmpty())
 				[
-					ToolButtons.MakeWidget()
-				]
-			];
+					SNew(SButton).Text(LOCTEXT("ChangeTerrainButton", "Change")).HAlign(HAlign_Center)
+				];
 
-		// Create the brush widget
-		FToolBarBuilder BrushButtons(command_list, FMultiBoxCustomization::None);
-		BrushButtons.AddToolBarButton(FDynamicTerrainEditorCommands::Get().LinearBrush, NAME_None,
-			LOCTEXT("LinearBrushName", "Linear"),
-			LOCTEXT("LinearBrushDesc", "Linear falloff"),
-			FSlateIcon(FDynamicTerrainStyle::GetName(), "Plugins.Brush.Linear"));
-		BrushButtons.AddToolBarButton(FDynamicTerrainEditorCommands::Get().SmoothBrush, NAME_None,
-			LOCTEXT("SmoothBrushName", "Smooth"),
-			LOCTEXT("SmoothBrushDesc", "Smooth falloff"),
-			FSlateIcon(FDynamicTerrainStyle::GetName(), "Plugins.Brush.Smooth"));
-		BrushButtons.AddToolBarButton(FDynamicTerrainEditorCommands::Get().RoundBrush, NAME_None,
-			LOCTEXT("RoundBrushName", "Round"),
-			LOCTEXT("RoundBrushDesc", "Round falloff"),
-			FSlateIcon(FDynamicTerrainStyle::GetName(), "Plugins.Brush.Round"));
-		BrushButtons.AddToolBarButton(FDynamicTerrainEditorCommands::Get().SphereBrush, NAME_None,
-			LOCTEXT("SphereBrushName", "Sphere"),
-			LOCTEXT("SphereBrushDesc", "Sphere falloff"),
-			FSlateIcon(FDynamicTerrainStyle::GetName(), "Plugins.Brush.Sphere"));
+			// Hide categories
+			DetailBuilder.EditCategory("Brush Settings", FText::GetEmpty(), ECategoryPriority::Important).SetCategoryVisibility(false);
+		}
+		else if (current_mode == TerrainModeID::SCULPT)
+		{
+			// Create the tool selection widget
+			IDetailCategoryBuilder& category_tools = DetailBuilder.EditCategory("Tools", FText::GetEmpty(), ECategoryPriority::Important);
 
-		category.AddCustomRow(FText::GetEmpty())
-			[
-				SNew(SBox).Padding(5).HAlign(HAlign_Center)
+			FToolBarBuilder ToolButtons(command_list, FMultiBoxCustomization::None);
+			ToolButtons.AddToolBarButton(FDynamicTerrainEditorCommands::Get().SculptTool, NAME_None,
+				LOCTEXT("SculptToolName", "Sculpt"),
+				LOCTEXT("SculptToolDesc", "Shape terrain by raising or lowering it"),
+				FSlateIcon(FDynamicTerrainStyle::GetName(), "Plugins.Tool.Sculpt"));
+			ToolButtons.AddToolBarButton(FDynamicTerrainEditorCommands::Get().SmoothTool, NAME_None,
+				LOCTEXT("SmoothToolName", "Smooth"),
+				LOCTEXT("SmoothToolDesc", "Smooth out bumpy terrain"),
+				FSlateIcon(FDynamicTerrainStyle::GetName(), "Plugins.Tool.Smooth"));
+			ToolButtons.AddToolBarButton(FDynamicTerrainEditorCommands::Get().FlattenTool, NAME_None,
+				LOCTEXT("FlattenToolName", "Flatten"),
+				LOCTEXT("FlattenToolDesc", "Level the terrain around the cursor"),
+				FSlateIcon(FDynamicTerrainStyle::GetName(), "Plugins.Tool.Flatten"));
+
+			category_tools.AddCustomRow(FText::GetEmpty())
 				[
-					BrushButtons.MakeWidget()
-				]
-			];
+					SNew(SBox).Padding(5).HAlign(HAlign_Center)
+					[
+						ToolButtons.MakeWidget()
+					]
+				];
+
+			// Create the brush widget
+			IDetailCategoryBuilder& category_brushes = DetailBuilder.EditCategory("Brushes", FText::GetEmpty(), ECategoryPriority::Important);
+
+			FToolBarBuilder BrushButtons(command_list, FMultiBoxCustomization::None);
+			BrushButtons.AddToolBarButton(FDynamicTerrainEditorCommands::Get().LinearBrush, NAME_None,
+				LOCTEXT("LinearBrushName", "Linear"),
+				LOCTEXT("LinearBrushDesc", "Linear falloff"),
+				FSlateIcon(FDynamicTerrainStyle::GetName(), "Plugins.Brush.Linear"));
+			BrushButtons.AddToolBarButton(FDynamicTerrainEditorCommands::Get().SmoothBrush, NAME_None,
+				LOCTEXT("SmoothBrushName", "Smooth"),
+				LOCTEXT("SmoothBrushDesc", "Smooth falloff"),
+				FSlateIcon(FDynamicTerrainStyle::GetName(), "Plugins.Brush.Smooth"));
+			BrushButtons.AddToolBarButton(FDynamicTerrainEditorCommands::Get().RoundBrush, NAME_None,
+				LOCTEXT("RoundBrushName", "Round"),
+				LOCTEXT("RoundBrushDesc", "Round falloff"),
+				FSlateIcon(FDynamicTerrainStyle::GetName(), "Plugins.Brush.Round"));
+			BrushButtons.AddToolBarButton(FDynamicTerrainEditorCommands::Get().SphereBrush, NAME_None,
+				LOCTEXT("SphereBrushName", "Sphere"),
+				LOCTEXT("SphereBrushDesc", "Sphere falloff"),
+				FSlateIcon(FDynamicTerrainStyle::GetName(), "Plugins.Brush.Sphere"));
+
+			category_brushes.AddCustomRow(FText::GetEmpty())
+				[
+					SNew(SBox).Padding(5).HAlign(HAlign_Center)
+					[
+						BrushButtons.MakeWidget()
+					]
+				];
+
+			// Hide categories
+			//DetailBuilder.EditCategory("Brush Settings", FText::GetEmpty(), ECategoryPriority::Important).SetCategoryVisibility(true);
+			DetailBuilder.EditCategory("Terrain Settings", FText::GetEmpty(), ECategoryPriority::Important).SetCategoryVisibility(false);
+		}
 
 		///TODO
 

@@ -51,6 +51,8 @@ void FDynamicTerrainMode::Enter()
 		{
 			Terrain->ShowBrush(true);
 		}
+		ToolUpdate();
+		ModeUpdate();
 		break;
 	}
 
@@ -228,4 +230,22 @@ void FDynamicTerrainMode::ToolUpdate()
 	Settings->Strength = Tools.GetTool()->Strength;
 	Settings->Size = Tools.GetTool()->Size;
 	Settings->Falloff = Tools.GetTool()->Falloff;
+}
+
+void FDynamicTerrainMode::ModeUpdate()
+{
+	// Update settings panel
+	Settings->ComponentSize = Terrain->GetComponentSize();
+	Settings->WidthX = Terrain->GetXWidth();
+	Settings->WidthY = Terrain->GetYWidth();
+	Settings->UVTiling = Terrain->GetTiling();
+	Settings->Border = Terrain->GetBorderEnabled();
+}
+
+void FDynamicTerrainMode::UpdateTerrain()
+{
+	// Resize the terrain
+	Terrain->SetTiling(Settings->UVTiling);
+	Terrain->EnableBorder(Settings->Border);
+	Terrain->Resize(Settings->ComponentSize, Settings->WidthX, Settings->WidthY);
 }

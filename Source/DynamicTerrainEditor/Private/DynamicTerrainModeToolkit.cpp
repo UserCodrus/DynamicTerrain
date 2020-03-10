@@ -95,7 +95,12 @@ void FDynamicTerrainModeToolkit::ChangeMode(TerrainModeID ModeID)
 	FDynamicTerrainMode* mode = (FDynamicTerrainMode*)GetEditorMode();
 	if (mode != nullptr)
 	{
+		// Change the mode
 		mode->SetMode(ModeID);
+
+		// Refresh the details pane
+		mode->ModeUpdate();
+		DetailsPanel->ForceRefresh();
 	}
 }
 
@@ -130,7 +135,7 @@ void FDynamicTerrainModeToolkit::ChangeTool(TerrainToolID ToolID)
 
 		// Refresh the details pane
 		mode->ToolUpdate();
-		DetailsPanel->ForceRefresh();;
+		DetailsPanel->ForceRefresh();
 	}
 }
 

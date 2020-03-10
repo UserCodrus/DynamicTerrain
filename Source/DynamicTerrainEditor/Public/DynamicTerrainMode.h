@@ -28,6 +28,17 @@ class UDynamicTerrainSettings : public UObject
 {
 	GENERATED_BODY()
 public:
+	UPROPERTY(EditAnywhere, Category = "Terrain Settings")
+		int32 ComponentSize = 0;
+	UPROPERTY(EditAnywhere, Category = "Terrain Settings")
+		int32 WidthX = 0;
+	UPROPERTY(EditAnywhere, Category = "Terrain Settings")
+		int32 WidthY = 0;
+	UPROPERTY(EditAnywhere, Category = "Terrain Settings")
+		float UVTiling = 1.0f;
+	UPROPERTY(EditAnywhere, Category = "Terrain Settings")
+		bool Border = true;
+
 	UPROPERTY(EditAnywhere, Category = "Brush Settings")
 		float Size = 10.0f;
 	UPROPERTY(EditAnywhere, Category = "Brush Settings")
@@ -78,6 +89,10 @@ public:
 
 	// Update the tool settings when the toolkit changes a tool
 	void ToolUpdate();
+	// Update the terrain settings when the mode changes
+	void ModeUpdate();
+	// Rebuild the terrain to match the chosen settings
+	void UpdateTerrain();
 
 	// The identifier string for this editor mode
 	const static FEditorModeID DynamicTerrainModeID;
