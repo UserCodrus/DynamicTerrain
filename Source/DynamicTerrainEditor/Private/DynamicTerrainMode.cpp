@@ -56,7 +56,7 @@ void FDynamicTerrainMode::Enter()
 		break;
 	}
 
-	//SelectNone();
+	SelectNone();
 }
 
 void FDynamicTerrainMode::Exit()
@@ -112,6 +112,68 @@ void FDynamicTerrainMode::Tick(FEditorViewportClient* ViewportClient, float Delt
 
 				// Apply changes to the terrain
 				Terrain->Update();
+			}
+		}
+	}
+}
+
+void FDynamicTerrainMode::Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI)
+{
+	if (CurrentMode->ModeID == TerrainModeID::MANAGE)
+	{
+		FLinearColor color_edge = FLinearColor::Green;
+		FLinearColor color_poly = FLinearColor::Green;
+		color_poly.G /= 2.0f;
+
+		// Get the scale and location of the terrain
+		FVector scale(100.0f);
+		FVector center(0.0f);
+		if (Terrain != nullptr)
+		{
+			scale = Terrain->GetActorScale3D();
+			center = Terrain->GetActorLocation();
+		}
+
+		int32 polygons = Settings->ComponentSize - 1;
+		float offset_x = (float)(Settings->WidthX * polygons) / 2.0f;
+		float offset_y = (float)(Settings->WidthX * polygons) / 2.0f;
+
+		// Draw X axis lines
+		for (int32 x = 0; x <= Settings->WidthX * polygons; ++x)
+		{
+			FVector start = center;
+			start.X = (start.X - offset_x + x) * scale.X;
+			FVector end = start;
+			start.Y -= offset_y * scale.Y;
+			end.Y += offset_y * scale.Y;
+
+			// Draw thick lines on component edges and thin lines on polygons
+			if (x % polygons == 0)
+			{
+				PDI->DrawLine(start, end, color_edge, ESceneDepthPriorityGroup::SDPG_MAX, 10.0f);
+			}
+			else
+			{
+				PDI->DrawLine(start, end, color_poly, ESceneDepthPriorityGroup::SDPG_MAX, 3.0f);
+			}
+		}
+		// Draw Y axis lines
+		for (int32 y = 0; y <= Settings->WidthY * polygons; ++y)
+		{
+			FVector start = center;
+			start.Y = (start.Y - offset_y + y) * scale.Y;
+			FVector end = start;
+			start.X -= offset_x * scale.X;
+			end.X += offset_x * scale.X;
+
+			// Draw thick lines on component edges and thin lines on polygons
+			if (y % polygons == 0)
+			{
+				PDI->DrawLine(start, end, color_edge, ESceneDepthPriorityGroup::SDPG_MAX, 10.0f);
+			}
+			else
+			{
+				PDI->DrawLine(start, end, color_poly, ESceneDepthPriorityGroup::SDPG_MAX, 3.0f);
 			}
 		}
 	}

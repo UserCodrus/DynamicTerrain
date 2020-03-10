@@ -47,9 +47,12 @@ public:
 	// Called by the engine when details are ready to be customized
 	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override;
 
+	// Called when the update button is clicked
+	static FReply UpdateButton();
+
 protected:
 	// Get the editor mode using these details
-	FDynamicTerrainMode* GetMode();
+	static FDynamicTerrainMode* GetMode();
 	// Update brush settings
 	void UpdateBrush();
 	// Update terrain settings

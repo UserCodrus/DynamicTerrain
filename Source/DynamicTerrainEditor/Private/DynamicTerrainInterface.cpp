@@ -113,10 +113,10 @@ void FDynamicTerrainDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilde
 		if (current_mode == TerrainModeID::MANAGE)
 		{
 			// Add a button to the manager interface
-			IDetailCategoryBuilder& category_manage = DetailBuilder.EditCategory("Terrain Settings", FText::GetEmpty(), ECategoryPriority::Important);
+			IDetailCategoryBuilder& category_manage = DetailBuilder.EditCategory("Terrain Settings", FText::GetEmpty(), ECategoryPriority::Default);
 			category_manage.AddCustomRow(FText::GetEmpty())
 				[
-					SNew(SButton).Text(LOCTEXT("ChangeTerrainButton", "Change")).HAlign(HAlign_Center)
+					SNew(SButton).Text(LOCTEXT("ChangeTerrainButton", "Change")).HAlign(HAlign_Center).OnClicked_Static(&FDynamicTerrainDetails::UpdateButton)
 				];
 
 			// Hide categories
@@ -189,6 +189,12 @@ void FDynamicTerrainDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilde
 		DetailBuilder.GetProperty("Size")->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FDynamicTerrainDetails::UpdateBrush));
 		DetailBuilder.GetProperty("Falloff")->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FDynamicTerrainDetails::UpdateBrush));
 	}
+}
+
+FReply FDynamicTerrainDetails::UpdateButton()
+{
+	GetMode()->UpdateTerrain();
+	return FReply::Handled();
 }
 
 FDynamicTerrainMode* FDynamicTerrainDetails::GetMode()

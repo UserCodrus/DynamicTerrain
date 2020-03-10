@@ -59,6 +59,9 @@ public:
 	virtual void Exit() override;
 	virtual void Tick(FEditorViewportClient* ViewportClient, float DeltaTime) override;
 
+	// Draw lines around terrain
+	virtual void Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI) override;
+
 	// Disable delta tracking for a smoother experience when using tools
 	virtual bool DisallowMouseDeltaTracking() const override;
 	// Handle clicks in the viewport
