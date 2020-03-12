@@ -21,9 +21,13 @@ void FDynamicTerrainModeToolkit::Init(const TSharedPtr< class IToolkitHost >& In
 
 	// Create the mode buttons
 	FToolBarBuilder ModeButtons(GetToolkitCommands(), FMultiBoxCustomization::None);
+	ModeButtons.AddToolBarButton(FDynamicTerrainEditorCommands::Get().CreateMode, NAME_None,
+		LOCTEXT("CreateModeName", "Create"),
+		LOCTEXT("ManageModeDesc", "Create a new terrain"),
+		FSlateIcon(FDynamicTerrainStyle::GetName(), "Plugins.Mode.Create"));
 	ModeButtons.AddToolBarButton(FDynamicTerrainEditorCommands::Get().ManageMode, NAME_None,
 		LOCTEXT("ManageModeName", "Manage"),
-		LOCTEXT("ManageModeDesc", "Create or resize a terrain object"),
+		LOCTEXT("ManageModeDesc", "Select and resize terrain objects"),
 		FSlateIcon(FDynamicTerrainStyle::GetName(), "Plugins.Mode.Manage"));
 	ModeButtons.AddToolBarButton(FDynamicTerrainEditorCommands::Get().GenerateMode, NAME_None,
 		LOCTEXT("GenerateModeName", "Generate"),
@@ -97,20 +101,27 @@ void FDynamicTerrainModeToolkit::ChangeMode(TerrainModeID ModeID)
 	{
 		// Change the mode
 		mode->SetMode(ModeID);
-
-		// Refresh the details pane
-		mode->ModeUpdate();
-		DetailsPanel->ForceRefresh();
 	}
 }
 
 bool FDynamicTerrainModeToolkit::IsModeEnabled(TerrainModeID ModeID)
 {
-	// Modes are always available
-	FDynamicTerrainMode* mode = (FDynamicTerrainMode*)GetEditorMode();
-	if (mode != nullptr)
+	if (ModeID == TerrainModeID::MANAGE || ModeID == TerrainModeID::CREATE)
 	{
+		// Manage mode is always available
 		return true;
+	}
+	else
+	{
+		// Other modes are only available if a terrain is selected
+		FDynamicTerrainMode* mode = (FDynamicTerrainMode*)GetEditorMode();
+		if (mode != nullptr)
+		{
+			if (mode->GetSelected() != nullptr)
+			{
+				return true;
+			}
+		}
 	}
 	return false;
 }
@@ -135,7 +146,6 @@ void FDynamicTerrainModeToolkit::ChangeTool(TerrainToolID ToolID)
 
 		// Refresh the details pane
 		mode->ToolUpdate();
-		DetailsPanel->ForceRefresh();
 	}
 }
 
@@ -190,9 +200,9 @@ bool FDynamicTerrainModeToolkit::IsBrushActive(TerrainBrushID BrushID)
 	return false;
 }
 
-bool FDynamicTerrainModeToolkit::PropertyVisible(const FPropertyAndParent& Property) const
+void FDynamicTerrainModeToolkit::RefreshDetails()
 {
-	return true;
+	DetailsPanel->ForceRefresh();
 }
 
 #undef LOCTEXT_NAMESPACE

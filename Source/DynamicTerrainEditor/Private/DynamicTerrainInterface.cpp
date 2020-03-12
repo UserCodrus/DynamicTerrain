@@ -23,7 +23,8 @@ FDynamicTerrainEditorCommands::FDynamicTerrainEditorCommands() : TCommands<FDyna
 void FDynamicTerrainEditorCommands::RegisterCommands()
 {
 	// Initialize each command
-	UI_COMMAND(ManageMode, "Manage Mode", "Create and resize terrain objects", EUserInterfaceActionType::RadioButton, FInputChord());
+	UI_COMMAND(CreateMode, "Create Mode", "Create terrain objects", EUserInterfaceActionType::RadioButton, FInputChord());
+	UI_COMMAND(ManageMode, "Manage Mode", "Select and resize terrain objects", EUserInterfaceActionType::RadioButton, FInputChord());
 	UI_COMMAND(GenerateMode, "Generate Mode", "Generate new terrain", EUserInterfaceActionType::RadioButton, FInputChord());
 	UI_COMMAND(SculptMode, "Sculpt Mode", "Sculpt the terrain", EUserInterfaceActionType::RadioButton, FInputChord());
 
@@ -40,6 +41,7 @@ void FDynamicTerrainEditorCommands::RegisterCommands()
 void FDynamicTerrainEditorCommands::MapCommands(FDynamicTerrainModeToolkit* Toolkit) const
 {
 	// Map commands to toolkit callbacks
+	MapCommandToMode(Toolkit, CreateMode, TerrainModeID::CREATE);
 	MapCommandToMode(Toolkit, ManageMode, TerrainModeID::MANAGE);
 	MapCommandToMode(Toolkit, GenerateMode, TerrainModeID::GENERATE);
 	MapCommandToMode(Toolkit, SculptMode, TerrainModeID::SCULPT);
@@ -112,11 +114,37 @@ void FDynamicTerrainDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilde
 		
 		if (current_mode == TerrainModeID::MANAGE)
 		{
+			if (mode->GetSelected() != nullptr)
+			{
+				// Add a button to the manager interface
+				IDetailCategoryBuilder& category_manage = DetailBuilder.EditCategory("Terrain Settings", FText::GetEmpty(), ECategoryPriority::Default);
+				category_manage.AddCustomRow(FText::GetEmpty())
+					[
+						SNew(SButton).Text(LOCTEXT("ChangeTerrainButton", "Change")).OnClicked_Static(&FDynamicTerrainDetails::ResizeButton)
+					];
+			}
+			else
+			{
+				// Add a text box with instructions
+				IDetailCategoryBuilder& category_text = DetailBuilder.EditCategory("Select", FText::GetEmpty(), ECategoryPriority::Default);
+				category_text.AddCustomRow(FText::GetEmpty())
+					[
+						SNew(STextBlock).Text(LOCTEXT("NoSelectionManage", "Click on a terrain to select it."))
+					];
+
+				DetailBuilder.EditCategory("Terrain Settings", FText::GetEmpty(), ECategoryPriority::Important).SetCategoryVisibility(false);
+			}
+
+			// Hide categories
+			DetailBuilder.EditCategory("Brush Settings", FText::GetEmpty(), ECategoryPriority::Important).SetCategoryVisibility(false);
+		}
+		else if (current_mode == TerrainModeID::CREATE)
+		{
 			// Add a button to the manager interface
-			IDetailCategoryBuilder& category_manage = DetailBuilder.EditCategory("Terrain Settings", FText::GetEmpty(), ECategoryPriority::Default);
-			category_manage.AddCustomRow(FText::GetEmpty())
+			IDetailCategoryBuilder& category_create = DetailBuilder.EditCategory("Terrain Settings", FText::GetEmpty(), ECategoryPriority::Default);
+			category_create.AddCustomRow(FText::GetEmpty())
 				[
-					SNew(SButton).Text(LOCTEXT("ChangeTerrainButton", "Change")).HAlign(HAlign_Center).OnClicked_Static(&FDynamicTerrainDetails::UpdateButton)
+					SNew(SButton).Text(LOCTEXT("NewTerrainButton", "Create")).OnClicked_Static(&FDynamicTerrainDetails::CreateButton)
 				];
 
 			// Hide categories
@@ -179,7 +207,6 @@ void FDynamicTerrainDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilde
 				];
 
 			// Hide categories
-			//DetailBuilder.EditCategory("Brush Settings", FText::GetEmpty(), ECategoryPriority::Important).SetCategoryVisibility(true);
 			DetailBuilder.EditCategory("Terrain Settings", FText::GetEmpty(), ECategoryPriority::Important).SetCategoryVisibility(false);
 		}
 
@@ -191,9 +218,15 @@ void FDynamicTerrainDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilde
 	}
 }
 
-FReply FDynamicTerrainDetails::UpdateButton()
+FReply FDynamicTerrainDetails::ResizeButton()
 {
-	GetMode()->UpdateTerrain();
+	GetMode()->ResizeTerrain();
+	return FReply::Handled();
+}
+
+FReply FDynamicTerrainDetails::CreateButton()
+{
+	GetMode()->CreateTerrain();
 	return FReply::Handled();
 }
 
@@ -211,15 +244,6 @@ void FDynamicTerrainDetails::UpdateBrush()
 		tool->Strength = mode->Settings->Strength;
 		tool->Size = mode->Settings->Size;
 		tool->Falloff = mode->Settings->Falloff;
-	}
-}
-
-void FDynamicTerrainDetails::UpdateTerrain()
-{
-	FDynamicTerrainMode* mode = GetMode();
-	if (mode != nullptr)
-	{
-		///TODO
 	}
 }
 

@@ -6,6 +6,8 @@
 
 #include "EditorModeManager.h"
 
+#define LOCTEXT_NAMESPACE "TerrainMode"
+
 const FEditorModeID FDynamicTerrainMode::DynamicTerrainModeID = TEXT("DynamicTerrainModeID");
 
 FDynamicTerrainMode::FDynamicTerrainMode()
@@ -14,6 +16,7 @@ FDynamicTerrainMode::FDynamicTerrainMode()
 
 	// Create editor mode
 	Modes.SetNum((int)TerrainModeID::NUM);
+	Modes[(int)TerrainModeID::CREATE] = new FDynamicTerrainToolMode("Create", TerrainModeID::CREATE);
 	Modes[(int)TerrainModeID::SCULPT] = new FDynamicTerrainToolMode("Sculpt", TerrainModeID::SCULPT);
 	Modes[(int)TerrainModeID::MANAGE] = new FDynamicTerrainToolMode("Manage", TerrainModeID::MANAGE);
 	Modes[(int)TerrainModeID::GENERATE] = new FDynamicTerrainToolMode("Generate", TerrainModeID::GENERATE);
@@ -43,20 +46,30 @@ void FDynamicTerrainMode::Enter()
 		Toolkit->Init(Owner->GetToolkitHost());
 	}
 
-	// Select the first available terrain actor
-	for (TActorIterator<ATerrain> itr(GetWorld()); itr; ++itr)
+	if (Terrain == nullptr)
 	{
-		Terrain = *itr;
-		if (CurrentMode->ModeID == TerrainModeID::SCULPT)
+		// Try to select a terrain if one isn't selected
+		for (TActorIterator<ATerrain> itr(GetWorld()); itr; ++itr)
 		{
-			Terrain->ShowBrush(true);
+			Terrain = *itr;
+			break;
 		}
-		ToolUpdate();
-		ModeUpdate();
-		break;
 	}
 
-	SelectNone();
+	if (Terrain == nullptr)
+	{
+		// Create a terrain if one still isn't selected
+		SetMode(TerrainModeID::CREATE);
+	}
+	else if (CurrentMode->ModeID == TerrainModeID::SCULPT)
+	{
+		Terrain->ShowBrush(true);
+	}
+
+	ToolUpdate();
+	ModeUpdate();
+
+	GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::White, "Terrain mode");
 }
 
 void FDynamicTerrainMode::Exit()
@@ -72,8 +85,6 @@ void FDynamicTerrainMode::Exit()
 
 void FDynamicTerrainMode::Tick(FEditorViewportClient* ViewportClient, float DeltaTime)
 {
-	//ViewportClient->Viewport->CaptureMouse(true);
-
 	// Get the scene view
 	FSceneViewFamilyContext context(FSceneViewFamily::ConstructionValues(ViewportClient->Viewport, ViewportClient->GetScene(), ViewportClient->EngineShowFlags));
 	FSceneView* View = ViewportClient->CalcSceneView(&context);
@@ -91,10 +102,9 @@ void FDynamicTerrainMode::Tick(FEditorViewportClient* ViewportClient, float Delt
 	FHitResult hit;
 	ViewportClient->GetWorld()->LineTraceSingleByChannel(hit, WorldOrigin, WorldOrigin + WorldDirection * 50000.0f, ECollisionChannel::ECC_WorldDynamic);
 
-	// Position the brush and apply it if the tool is active
-	if (Terrain != nullptr)
+	if (CurrentMode->ModeID == TerrainModeID::SCULPT)
 	{
-		if (CurrentMode->ModeID == TerrainModeID::SCULPT)
+		if (Terrain != nullptr)
 		{
 			FTerrainTool* tool = Tools.GetTool();
 
@@ -102,16 +112,27 @@ void FDynamicTerrainMode::Tick(FEditorViewportClient* ViewportClient, float Delt
 			Terrain->SetBrushPosition(hit.Location);
 			Terrain->SetBrushSize(tool->Size, tool->Falloff);
 
-			if (UseTool)
+			if (MouseClick)
 			{
-				// Set properties of the current tool
-				tool->Invert = InvertTool;
-
 				// Apply the tool
+				tool->Invert = InvertTool;
 				tool->Apply(Terrain, hit.Location, DeltaTime);
 
-				// Apply changes to the terrain
+				// Force the terrain to update
 				Terrain->Update();
+			}
+		}
+	}
+	else if (CurrentMode->ModeID == TerrainModeID::MANAGE)
+	{
+		// Select a terrain when clicked in manage mode
+		if (MouseClick)
+		{
+			ATerrain* newterrain = Cast<ATerrain>(hit.Actor);
+			if (newterrain != nullptr && newterrain != Terrain)
+			{
+				Terrain = newterrain;
+				ModeUpdate();
 			}
 		}
 	}
@@ -119,33 +140,44 @@ void FDynamicTerrainMode::Tick(FEditorViewportClient* ViewportClient, float Delt
 
 void FDynamicTerrainMode::Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI)
 {
-	if (CurrentMode->ModeID == TerrainModeID::MANAGE)
-	{
-		FLinearColor color_edge = FLinearColor::Green;
-		FLinearColor color_poly = FLinearColor::Green;
-		color_poly.G /= 2.0f;
+	if (CurrentMode == nullptr)
+		return;
 
-		// Get the scale and location of the terrain
-		FVector scale(100.0f);
-		FVector center(0.0f);
-		if (Terrain != nullptr)
+	FLinearColor color_edge = FLinearColor::Green;
+	FLinearColor color_poly = FLinearColor::Green;
+	color_poly.G /= 2.0f;
+
+	FVector scale(100.0f);
+	FVector center(0.0f);
+
+	if (CurrentMode->ModeID == TerrainModeID::MANAGE || CurrentMode->ModeID == TerrainModeID::CREATE)
+	{
+		// Draw gridlines on the selected terrain or at the location of a potential new terrain
+		if (CurrentMode->ModeID == TerrainModeID::MANAGE)
 		{
-			scale = Terrain->GetActorScale3D();
-			center = Terrain->GetActorLocation();
+			if (Terrain != nullptr)
+			{
+				scale = Terrain->GetActorScale3D();
+				center = Terrain->GetActorLocation();
+			}
+			else
+			{
+				return;
+			}
 		}
 
 		int32 polygons = Settings->ComponentSize - 1;
-		float offset_x = (float)(Settings->WidthX * polygons) / 2.0f;
-		float offset_y = (float)(Settings->WidthX * polygons) / 2.0f;
+		float offset_x = (float)(Settings->WidthX * polygons) * scale.X / 2.0f;
+		float offset_y = (float)(Settings->WidthY * polygons) * scale.Y / 2.0f;
 
 		// Draw X axis lines
 		for (int32 x = 0; x <= Settings->WidthX * polygons; ++x)
 		{
 			FVector start = center;
-			start.X = (start.X - offset_x + x) * scale.X;
+			start.X -= offset_x - x * scale.X;
 			FVector end = start;
-			start.Y -= offset_y * scale.Y;
-			end.Y += offset_y * scale.Y;
+			start.Y -= offset_y;
+			end.Y += offset_y;
 
 			// Draw thick lines on component edges and thin lines on polygons
 			if (x % polygons == 0)
@@ -161,10 +193,10 @@ void FDynamicTerrainMode::Render(const FSceneView* View, FViewport* Viewport, FP
 		for (int32 y = 0; y <= Settings->WidthY * polygons; ++y)
 		{
 			FVector start = center;
-			start.Y = (start.Y - offset_y + y) * scale.Y;
+			start.Y -= offset_y - y * scale.Y;
 			FVector end = start;
-			start.X -= offset_x * scale.X;
-			end.X += offset_x * scale.X;
+			start.X -= offset_x;
+			end.X += offset_x;
 
 			// Draw thick lines on component edges and thin lines on polygons
 			if (y % polygons == 0)
@@ -175,6 +207,28 @@ void FDynamicTerrainMode::Render(const FSceneView* View, FViewport* Viewport, FP
 			{
 				PDI->DrawLine(start, end, color_poly, ESceneDepthPriorityGroup::SDPG_MAX, 3.0f);
 			}
+		}
+	}
+	else
+	{
+		// Highlight the selected terrain
+		if (Terrain != nullptr)
+		{
+			scale = Terrain->GetActorScale3D();
+			center = Terrain->GetActorLocation();
+
+			float offset_x = (float)(Terrain->GetXWidth() * (Terrain->GetComponentSize() - 1)) * scale.X / 2.0f;
+			float offset_y = (float)(Terrain->GetYWidth() * (Terrain->GetComponentSize() - 1)) * scale.Y / 2.0f;
+
+			FVector p00(center.X - offset_x, center.Y - offset_y, center.Z);
+			FVector p10(center.X + offset_x, center.Y - offset_y, center.Z);
+			FVector p01(center.X - offset_x, center.Y + offset_y, center.Z);
+			FVector p11(center.X + offset_x, center.Y + offset_y, center.Z);
+
+			PDI->DrawLine(p00, p10, color_edge, ESceneDepthPriorityGroup::SDPG_World, 10.0f);
+			PDI->DrawLine(p10, p11, color_edge, ESceneDepthPriorityGroup::SDPG_World, 10.0f);
+			PDI->DrawLine(p11, p01, color_edge, ESceneDepthPriorityGroup::SDPG_World, 10.0f);
+			PDI->DrawLine(p01, p00, color_edge, ESceneDepthPriorityGroup::SDPG_World, 10.0f);
 		}
 	}
 }
@@ -197,17 +251,15 @@ bool FDynamicTerrainMode::InputKey(FEditorViewportClient* ViewportClient, FViewp
 	{
 		if (Event == EInputEvent::IE_Pressed)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::White, "Click");
 			Viewport->CaptureMouse(true);
 
-			UseTool = true;
+			MouseClick = true;
 		}
 		else if (Event == EInputEvent::IE_Released)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::White, "Unclick");
 			Viewport->CaptureMouse(false);
 
-			UseTool = false;
+			MouseClick = false;
 		}
 
 		return true;
@@ -269,21 +321,47 @@ void FDynamicTerrainMode::SetMode(TerrainModeID ModeID)
 		CurrentMode = Modes[(int)ModeID];
 		if (ModeID == TerrainModeID::SCULPT)
 		{
-			Terrain->ShowBrush(true);
+			// Enable the brush decal
+			if (Terrain != nullptr)
+			{
+				Terrain->ShowBrush(true);
+			}
 		}
 		else
 		{
-			Terrain->ShowBrush(false);
+			if (Terrain != nullptr)
+			{
+				Terrain->ShowBrush(false);
+
+				if (ModeID == TerrainModeID::MANAGE)
+				{
+					ModeUpdate();
+				}
+			}
+
+			if (ModeID == TerrainModeID::CREATE)
+			{
+				// Set the details panel to defaul values
+				Settings->ComponentSize = 64;
+				Settings->WidthX = 3;
+				Settings->WidthY = 3;
+				Settings->UVTiling = 1.0f;
+				Settings->Border = true;
+			}
 		}
 	}
-	FString out = "Mode changed to: ";
-	out.Append(CurrentMode->ModeName.ToString());
-	GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::White, out);
+
+	((FDynamicTerrainModeToolkit*)GetToolkit().Get())->RefreshDetails();
 }
 
 FToolSet* FDynamicTerrainMode::GetTools()
 {
 	return &Tools;
+}
+
+ATerrain* FDynamicTerrainMode::GetSelected()
+{
+	return Terrain;
 }
 
 void FDynamicTerrainMode::ToolUpdate()
@@ -292,22 +370,50 @@ void FDynamicTerrainMode::ToolUpdate()
 	Settings->Strength = Tools.GetTool()->Strength;
 	Settings->Size = Tools.GetTool()->Size;
 	Settings->Falloff = Tools.GetTool()->Falloff;
+
+	((FDynamicTerrainModeToolkit*)GetToolkit().Get())->RefreshDetails();
 }
 
 void FDynamicTerrainMode::ModeUpdate()
 {
-	// Update settings panel
-	Settings->ComponentSize = Terrain->GetComponentSize();
-	Settings->WidthX = Terrain->GetXWidth();
-	Settings->WidthY = Terrain->GetYWidth();
-	Settings->UVTiling = Terrain->GetTiling();
-	Settings->Border = Terrain->GetBorderEnabled();
+	if (Terrain != nullptr)
+	{
+		// Update settings panel
+		Settings->ComponentSize = Terrain->GetComponentSize();
+		Settings->WidthX = Terrain->GetXWidth();
+		Settings->WidthY = Terrain->GetYWidth();
+		Settings->UVTiling = Terrain->GetTiling();
+		Settings->Border = Terrain->GetBorderEnabled();
+
+		((FDynamicTerrainModeToolkit*)GetToolkit().Get())->RefreshDetails();
+	}
 }
 
-void FDynamicTerrainMode::UpdateTerrain()
+void FDynamicTerrainMode::ResizeTerrain()
 {
-	// Resize the terrain
-	Terrain->SetTiling(Settings->UVTiling);
-	Terrain->EnableBorder(Settings->Border);
-	Terrain->Resize(Settings->ComponentSize, Settings->WidthX, Settings->WidthY);
+	if (Terrain != nullptr)
+	{
+		Terrain->SetTiling(Settings->UVTiling);
+		Terrain->EnableBorder(Settings->Border);
+		Terrain->Resize(Settings->ComponentSize, Settings->WidthX, Settings->WidthY);
+	}
 }
+
+void FDynamicTerrainMode::CreateTerrain()
+{
+	GEditor->BeginTransaction(LOCTEXT("CreateTerrainTransaction", "New Terrain"));
+
+	// Spawn the terrain
+	ATerrain* new_terrain = Cast<ATerrain>(GetWorld()->SpawnActor(ATerrain::StaticClass()));
+
+	// Resize the new terrain
+	new_terrain->SetTiling(Settings->UVTiling);
+	new_terrain->EnableBorder(Settings->Border);
+	new_terrain->Resize(Settings->ComponentSize, Settings->WidthX, Settings->WidthY);
+
+	Terrain = new_terrain;
+
+	GEditor->EndTransaction();
+}
+
+#undef LOCTEXT_NAMESPACE

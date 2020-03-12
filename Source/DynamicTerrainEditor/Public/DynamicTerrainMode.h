@@ -9,6 +9,7 @@
 
 enum class TerrainModeID
 {
+	CREATE,
 	MANAGE,
 	GENERATE,
 	SCULPT,
@@ -29,11 +30,11 @@ class UDynamicTerrainSettings : public UObject
 	GENERATED_BODY()
 public:
 	UPROPERTY(EditAnywhere, Category = "Terrain Settings")
-		int32 ComponentSize = 0;
+		int32 ComponentSize = 64;
 	UPROPERTY(EditAnywhere, Category = "Terrain Settings")
-		int32 WidthX = 0;
+		int32 WidthX = 3;
 	UPROPERTY(EditAnywhere, Category = "Terrain Settings")
-		int32 WidthY = 0;
+		int32 WidthY = 3;
 	UPROPERTY(EditAnywhere, Category = "Terrain Settings")
 		float UVTiling = 1.0f;
 	UPROPERTY(EditAnywhere, Category = "Terrain Settings")
@@ -82,6 +83,8 @@ public:
 
 	// Get the tools for this mode
 	FToolSet* GetTools();
+	// Get the selected terrain
+	ATerrain* GetSelected();
 
 	// Get the ID of the current mode
 	TerrainModeID GetMode();
@@ -95,7 +98,9 @@ public:
 	// Update the terrain settings when the mode changes
 	void ModeUpdate();
 	// Rebuild the terrain to match the chosen settings
-	void UpdateTerrain();
+	void ResizeTerrain();
+	// Create a new terrain
+	void CreateTerrain();
 
 	// The identifier string for this editor mode
 	const static FEditorModeID DynamicTerrainModeID;
@@ -103,8 +108,8 @@ public:
 	UDynamicTerrainSettings* Settings;
 
 protected:
-	// Activates the tool when clicking
-	bool UseTool = false;
+	// Set to true when clicking
+	bool MouseClick = false;
 	// Inverts the tool when shift is held
 	bool InvertTool = false;
 

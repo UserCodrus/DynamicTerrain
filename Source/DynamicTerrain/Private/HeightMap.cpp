@@ -17,6 +17,7 @@ void UHeightMap::Resize(int32 X, int32 Y)
 	WidthX = X;
 	WidthY = Y;
 
+	MapData.Empty();
 	MapData.SetNumZeroed(WidthX * WidthY, true);
 }
 

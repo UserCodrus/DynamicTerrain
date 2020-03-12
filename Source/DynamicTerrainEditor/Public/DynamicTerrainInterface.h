@@ -17,6 +17,7 @@ public:
 	void MapCommands(FDynamicTerrainModeToolkit* Toolkit) const;
 
 	// UI commands
+	TSharedPtr<FUICommandInfo> CreateMode;
 	TSharedPtr<FUICommandInfo> ManageMode;
 	TSharedPtr<FUICommandInfo> GenerateMode;
 	TSharedPtr<FUICommandInfo> SculptMode;
@@ -47,14 +48,14 @@ public:
 	// Called by the engine when details are ready to be customized
 	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override;
 
-	// Called when the update button is clicked
-	static FReply UpdateButton();
+	// Called when the resize button is clicked
+	static FReply ResizeButton();
+	// Called when the create button is clicked
+	static FReply CreateButton();
 
 protected:
 	// Get the editor mode using these details
 	static FDynamicTerrainMode* GetMode();
 	// Update brush settings
 	void UpdateBrush();
-	// Update terrain settings
-	void UpdateTerrain();
 };

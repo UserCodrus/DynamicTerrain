@@ -24,6 +24,7 @@ void FDynamicTerrainStyle::Initialize()
 	StyleSet->Set("Plugins.Tab", new FSlateImageBrush(content / "icon_Test.png", size));
 
 	StyleSet->Set("Plugins.Mode.Manage", new FSlateImageBrush(content / "icon_Test.png", size));
+	StyleSet->Set("Plugins.Mode.Create", new FSlateImageBrush(content / "icon_Test.png", size));
 	StyleSet->Set("Plugins.Mode.Generate", new FSlateImageBrush(content / "icon_Test.png", size));
 	StyleSet->Set("Plugins.Mode.Sculpt", new FSlateImageBrush(content / "icon_Test.png", size));
 
