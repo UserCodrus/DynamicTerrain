@@ -12,7 +12,7 @@ const FEditorModeID FDynamicTerrainMode::DynamicTerrainModeID = TEXT("DynamicTer
 
 FDynamicTerrainMode::FDynamicTerrainMode()
 {
-	Settings = NewObject<UDynamicTerrainSettings>(GetTransientPackage(), TEXT("DynamicTerrainSettings"), RF_Transactional);
+	Settings = NewObject<UDynamicTerrainSettings>(GetTransientPackage(), TEXT("DynamicTerrainSettings"), RF_NoFlags);
 
 	// Create editor mode
 	Modes.SetNum((int)TerrainModeID::NUM);
@@ -21,7 +21,7 @@ FDynamicTerrainMode::FDynamicTerrainMode()
 	Modes[(int)TerrainModeID::MANAGE] = new FDynamicTerrainToolMode("Manage", TerrainModeID::MANAGE);
 	Modes[(int)TerrainModeID::GENERATE] = new FDynamicTerrainToolMode("Generate", TerrainModeID::GENERATE);
 
-	CurrentMode = Modes[0];
+	CurrentMode = Modes[1];
 }
 
 FDynamicTerrainMode::~FDynamicTerrainMode()
@@ -61,13 +61,16 @@ void FDynamicTerrainMode::Enter()
 		// Create a terrain if one still isn't selected
 		SetMode(TerrainModeID::CREATE);
 	}
-	else if (CurrentMode->ModeID == TerrainModeID::SCULPT)
+	else
 	{
-		Terrain->ShowBrush(true);
+		if (CurrentMode->ModeID == TerrainModeID::SCULPT)
+		{
+			Terrain->ShowBrush(true);
+		}
 	}
 
-	ToolUpdate();
 	ModeUpdate();
+	ToolUpdate();
 
 	GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::White, "Terrain mode");
 }
@@ -140,7 +143,7 @@ void FDynamicTerrainMode::Tick(FEditorViewportClient* ViewportClient, float Delt
 
 void FDynamicTerrainMode::Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI)
 {
-	if (CurrentMode == nullptr)
+	if (CurrentMode == nullptr || Settings == nullptr)
 		return;
 
 	FLinearColor color_edge = FLinearColor::Green;
@@ -341,12 +344,7 @@ void FDynamicTerrainMode::SetMode(TerrainModeID ModeID)
 
 			if (ModeID == TerrainModeID::CREATE)
 			{
-				// Set the details panel to defaul values
-				Settings->ComponentSize = 64;
-				Settings->WidthX = 3;
-				Settings->WidthY = 3;
-				Settings->UVTiling = 1.0f;
-				Settings->Border = true;
+				ModeUpdate();
 			}
 		}
 	}
@@ -376,17 +374,26 @@ void FDynamicTerrainMode::ToolUpdate()
 
 void FDynamicTerrainMode::ModeUpdate()
 {
-	if (Terrain != nullptr)
+	if (Terrain != nullptr && CurrentMode->ModeID != TerrainModeID::CREATE)
 	{
-		// Update settings panel
+		// Copy the current terrain's attributes to the settings panel
 		Settings->ComponentSize = Terrain->GetComponentSize();
 		Settings->WidthX = Terrain->GetXWidth();
 		Settings->WidthY = Terrain->GetYWidth();
 		Settings->UVTiling = Terrain->GetTiling();
 		Settings->Border = Terrain->GetBorderEnabled();
-
-		((FDynamicTerrainModeToolkit*)GetToolkit().Get())->RefreshDetails();
 	}
+	else
+	{
+		// Change the settings to default
+		Settings->ComponentSize = 64;
+		Settings->WidthX = 3;
+		Settings->WidthY = 3;
+		Settings->UVTiling = 1.0f;
+		Settings->Border = true;
+	}
+
+	((FDynamicTerrainModeToolkit*)GetToolkit().Get())->RefreshDetails();
 }
 
 void FDynamicTerrainMode::ResizeTerrain()
