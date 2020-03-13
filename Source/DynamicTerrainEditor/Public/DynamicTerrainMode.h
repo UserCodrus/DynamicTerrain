@@ -99,6 +99,9 @@ public:
 	// Create a new terrain
 	void CreateTerrain();
 
+	// Select a terrain object
+	void SelectTerrain(ATerrain* Terrain);
+
 	// The identifier string for this editor mode
 	const static FEditorModeID DynamicTerrainModeID;
 	// The settings data used to display setting in the editor
@@ -119,5 +122,7 @@ protected:
 	FDynamicTerrainToolMode* CurrentMode = nullptr;
 
 	// The terrain object being edited
-	ATerrain* Terrain = nullptr;
+	ATerrain* SelectedTerrain = nullptr;
+	// The name of the last terrain selected
+	FString TerrainName;
 };
