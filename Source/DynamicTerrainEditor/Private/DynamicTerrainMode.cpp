@@ -12,7 +12,8 @@ const FEditorModeID FDynamicTerrainMode::DynamicTerrainModeID = TEXT("DynamicTer
 
 FDynamicTerrainMode::FDynamicTerrainMode()
 {
-	Settings = NewObject<UDynamicTerrainSettings>(GetTransientPackage(), TEXT("DynamicTerrainSettings"), RF_NoFlags);
+	Settings = NewObject<UDynamicTerrainSettings>(GetTransientPackage(), TEXT("DynamicTerrainSettings"));
+	Settings->AddToRoot();
 
 	// Create editor mode
 	Modes.SetNum((int)TerrainModeID::NUM);
@@ -31,6 +32,8 @@ FDynamicTerrainMode::~FDynamicTerrainMode()
 		delete Modes[i];
 	}
 	Modes.Empty();
+
+	Settings->RemoveFromRoot();
 }
 
 /// Engine Functions ///
@@ -143,7 +146,7 @@ void FDynamicTerrainMode::Tick(FEditorViewportClient* ViewportClient, float Delt
 
 void FDynamicTerrainMode::Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI)
 {
-	if (CurrentMode == nullptr || Settings == nullptr)
+	if (PDI == nullptr || CurrentMode == nullptr || Settings == nullptr)
 		return;
 
 	FLinearColor color_edge = FLinearColor::Green;
@@ -284,14 +287,6 @@ bool FDynamicTerrainMode::InputKey(FEditorViewportClient* ViewportClient, FViewp
 	}
 
 	return false;
-}
-
-void FDynamicTerrainMode::AddReferencedObjects(FReferenceCollector& Collector)
-{
-	FEdMode::AddReferencedObjects(Collector);
-
-	// Add the editor settings
-	Collector.AddReferencedObject(Settings);
 }
 
 bool FDynamicTerrainMode::UsesToolkits() const

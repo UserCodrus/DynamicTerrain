@@ -70,9 +70,6 @@ public:
 	// Handle key input
 	virtual bool InputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) override;
 
-	// Add UObject reference to prevent them from being garbage collected
-	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
-
 	// Always returns true because this mode uses toolkits
 	bool UsesToolkits() const override;
 
