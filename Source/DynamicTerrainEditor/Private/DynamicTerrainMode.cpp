@@ -10,6 +10,31 @@
 
 const FEditorModeID FDynamicTerrainMode::DynamicTerrainModeID = TEXT("DynamicTerrainModeID");
 
+ABrushProxy::ABrushProxy()
+{
+	// Create the decal
+	Decal = CreateDefaultSubobject<UBrushDecal>(TEXT("TerrainBrushDecal"));
+	Decal->SetVisibility(false);
+
+	SetActorLabel("BrushProxy");
+}
+
+bool ABrushProxy::IsSelectable() const
+{
+	return false;
+}
+
+void ABrushProxy::ShowBrush(bool Visible)
+{
+	Decal->SetVisibility(Visible);
+}
+
+void ABrushProxy::SetBrush(FVector Location, FTerrainTool* Tool, ATerrain* Terrain)
+{
+	Decal->SetRelativeLocation(Location);
+	Decal->Resize(Tool, Terrain);
+}
+
 FDynamicTerrainMode::FDynamicTerrainMode()
 {
 	Settings = NewObject<UDynamicTerrainSettings>(GetTransientPackage(), TEXT("DynamicTerrainSettings"));
@@ -52,14 +77,8 @@ void FDynamicTerrainMode::Enter()
 	// Create the brush display
 	FActorSpawnParameters spawn_params;
 	spawn_params.Name = TEXT("BrushProxy");
-	BrushProxy = GetWorld()->SpawnActor<AActor>(spawn_params);
-	BrushProxy->SetActorLabel("BrushProxy");
-
-	BrushDecal = NewObject<UBrushDecal>(BrushProxy, TEXT("BrushDecal"));
-	BrushProxy->AddOwnedComponent(BrushDecal);
-	BrushDecal->RegisterComponent();
-
-	BrushDecal->SetVisibility(false);
+	spawn_params.ObjectFlags = EObjectFlags::RF_Transient;
+	Brush = GetWorld()->SpawnActor<ABrushProxy>(spawn_params);
 
 	// Select a terrain from the level, preferably one matching the name of the last terrain selected in this mode
 	for (TActorIterator<ATerrain> itr(GetWorld()); itr; ++itr)
@@ -81,7 +100,7 @@ void FDynamicTerrainMode::Enter()
 	{
 		if (CurrentMode->ModeID == TerrainModeID::SCULPT)
 		{
-			BrushDecal->SetVisibility(true);
+			Brush->ShowBrush(true);
 		}
 
 		TerrainName = SelectedTerrain->GetName();
@@ -98,12 +117,9 @@ void FDynamicTerrainMode::Exit()
 	// Deselect the terrain to prevent dangling pointerse
 	SelectedTerrain = nullptr;
 
-	// Destroy the brush display
-	BrushDecal->UnregisterComponent();
-	BrushDecal->DestroyComponent();
-	BrushDecal = nullptr;
-	BrushProxy->Destroy();
-	BrushProxy = nullptr;
+	// Destroy the brush proxy
+	Brush->Destroy();
+	Brush = nullptr;
 
 	FEdMode::Exit();
 }
@@ -134,8 +150,7 @@ void FDynamicTerrainMode::Tick(FEditorViewportClient* ViewportClient, float Delt
 			FTerrainTool* tool = Tools.GetTool();
 
 			// Adjust the brush display
-			BrushDecal->SetRelativeLocation(hit.Location);
-			BrushDecal->Resize(tool, SelectedTerrain);
+			Brush->SetBrush(hit.Location, tool, SelectedTerrain);
 
 			if (MouseClick)
 			{
@@ -340,14 +355,14 @@ void FDynamicTerrainMode::SetMode(TerrainModeID ModeID)
 			// Enable the brush decal
 			if (SelectedTerrain != nullptr)
 			{
-				BrushDecal->SetVisibility(true);
+				Brush->ShowBrush(true);
 			}
 		}
 		else
 		{
 			if (SelectedTerrain != nullptr)
 			{
-				BrushDecal->SetVisibility(false);
+				Brush->ShowBrush(false);
 
 				if (ModeID == TerrainModeID::MANAGE)
 				{

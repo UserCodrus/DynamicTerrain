@@ -26,6 +26,26 @@ struct FDynamicTerrainToolMode
 };
 
 UCLASS()
+class ABrushProxy : public AActor
+{
+	GENERATED_BODY()
+
+public:
+	ABrushProxy();
+
+	virtual bool IsSelectable() const override;
+
+	// Show or hide the brush decal
+	void ShowBrush(bool Visible);
+	// Set the location and size of the brush decal
+	void SetBrush(FVector Location, FTerrainTool* Tool, ATerrain* Terrain);
+
+protected:
+	UPROPERTY()
+		UBrushDecal* Decal = nullptr;
+};
+
+UCLASS()
 class UDynamicTerrainSettings : public UObject
 {
 	GENERATED_BODY()
@@ -122,10 +142,8 @@ protected:
 	// The currently selected mode
 	FDynamicTerrainToolMode* CurrentMode = nullptr;
 
-	// A dummy actor to attach the brush decal
-	AActor* BrushProxy = nullptr;
-	// The brush display
-	UBrushDecal* BrushDecal = nullptr;
+	// The brush decal actor
+	ABrushProxy* Brush = nullptr;
 
 	// The terrain object being edited
 	ATerrain* SelectedTerrain = nullptr;
