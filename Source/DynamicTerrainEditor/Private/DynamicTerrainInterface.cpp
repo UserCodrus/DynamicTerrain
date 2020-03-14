@@ -1,7 +1,7 @@
 #include "DynamicTerrainInterface.h"
 
 #include "DynamicTerrainStyle.h"
-#include "Tools.h"
+#include "TerrainTools.h"
 
 #include "Editor.h"
 #include "EditorModeManager.h"

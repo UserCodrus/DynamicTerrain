@@ -1,7 +1,8 @@
 #pragma once
 
 #include "Terrain.h"
-#include "Tools.h"
+#include "TerrainTools.h"
+#include "TerrainComponents.h"
 
 #include "EdMode.h"
 #include "EditorModeRegistry.h"
@@ -120,6 +121,11 @@ protected:
 	TArray<FDynamicTerrainToolMode*> Modes;
 	// The currently selected mode
 	FDynamicTerrainToolMode* CurrentMode = nullptr;
+
+	// A dummy actor to attach the brush decal
+	AActor* BrushProxy = nullptr;
+	// The brush display
+	UBrushDecal* BrushDecal = nullptr;
 
 	// The terrain object being edited
 	ATerrain* SelectedTerrain = nullptr;

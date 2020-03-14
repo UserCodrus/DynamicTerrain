@@ -49,6 +49,18 @@ void FDynamicTerrainMode::Enter()
 		Toolkit->Init(Owner->GetToolkitHost());
 	}
 
+	// Create the brush display
+	FActorSpawnParameters spawn_params;
+	spawn_params.Name = TEXT("BrushProxy");
+	BrushProxy = GetWorld()->SpawnActor<AActor>(spawn_params);
+	BrushProxy->SetActorLabel("BrushProxy");
+
+	BrushDecal = NewObject<UBrushDecal>(BrushProxy, TEXT("BrushDecal"));
+	BrushProxy->AddOwnedComponent(BrushDecal);
+	BrushDecal->RegisterComponent();
+
+	BrushDecal->SetVisibility(false);
+
 	// Select a terrain from the level, preferably one matching the name of the last terrain selected in this mode
 	for (TActorIterator<ATerrain> itr(GetWorld()); itr; ++itr)
 	{
@@ -69,7 +81,7 @@ void FDynamicTerrainMode::Enter()
 	{
 		if (CurrentMode->ModeID == TerrainModeID::SCULPT)
 		{
-			SelectedTerrain->ShowBrush(true);
+			BrushDecal->SetVisibility(true);
 		}
 
 		TerrainName = SelectedTerrain->GetName();
@@ -77,18 +89,21 @@ void FDynamicTerrainMode::Enter()
 
 	ModeUpdate();
 	ToolUpdate();
+
+	GEditor->SelectNone(false, false);
 }
 
 void FDynamicTerrainMode::Exit()
 {
-	// Disable the brush
-	if (SelectedTerrain != nullptr)
-	{
-		SelectedTerrain->ShowBrush(false);
-	}
-
 	// Deselect the terrain to prevent dangling pointerse
 	SelectedTerrain = nullptr;
+
+	// Destroy the brush display
+	BrushDecal->UnregisterComponent();
+	BrushDecal->DestroyComponent();
+	BrushDecal = nullptr;
+	BrushProxy->Destroy();
+	BrushProxy = nullptr;
 
 	FEdMode::Exit();
 }
@@ -119,8 +134,8 @@ void FDynamicTerrainMode::Tick(FEditorViewportClient* ViewportClient, float Delt
 			FTerrainTool* tool = Tools.GetTool();
 
 			// Adjust the brush display
-			SelectedTerrain->SetBrushPosition(hit.Location);
-			SelectedTerrain->SetBrushSize(tool->Size, tool->Falloff);
+			BrushDecal->SetRelativeLocation(hit.Location);
+			BrushDecal->Resize(tool, SelectedTerrain);
 
 			if (MouseClick)
 			{
@@ -325,14 +340,14 @@ void FDynamicTerrainMode::SetMode(TerrainModeID ModeID)
 			// Enable the brush decal
 			if (SelectedTerrain != nullptr)
 			{
-				SelectedTerrain->ShowBrush(true);
+				BrushDecal->SetVisibility(true);
 			}
 		}
 		else
 		{
 			if (SelectedTerrain != nullptr)
 			{
-				SelectedTerrain->ShowBrush(false);
+				BrushDecal->SetVisibility(false);
 
 				if (ModeID == TerrainModeID::MANAGE)
 				{

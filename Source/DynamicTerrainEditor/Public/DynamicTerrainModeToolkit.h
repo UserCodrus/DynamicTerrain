@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Tools.h"
+#include "TerrainTools.h"
 
 #include "Toolkits/BaseToolkit.h"
 #include "IDetailsView.h"
