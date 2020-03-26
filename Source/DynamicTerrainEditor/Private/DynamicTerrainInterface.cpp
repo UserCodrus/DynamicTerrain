@@ -10,8 +10,38 @@
 #include "DetailWidgetRow.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "Widgets/Input/SButton.h"
+#include "PropertyCustomizationHelpers.h"
 
 #define LOCTEXT_NAMESPACE "TerrainInterface"
+
+/// Generator Widget ///
+
+void SGeneratorBox::Construct(const FArguments& InArgs)
+{
+	// Create the combobox widget
+	FDynamicTerrainMode* mode = (FDynamicTerrainMode*)GLevelEditorModeTools().GetActiveMode(FDynamicTerrainMode::DynamicTerrainModeID);
+	ChildSlot
+		[
+			SNew(SComboBox<TSharedPtr<FTerrainGenerator>>)
+			.OptionsSource(&mode->Generators)
+			.OnGenerateWidget(this, &SGeneratorBox::OptionWidget)
+			.OnSelectionChanged(this, &SGeneratorBox::OptionSelect)
+			.InitiallySelectedItem(mode->GetGenerator())
+				[
+					SNew(STextBlock).Text(FText::FromName(mode->GetGenerator()->Name))
+				]
+		];
+}
+
+TSharedRef<SWidget> SGeneratorBox::OptionWidget(TSharedPtr<FTerrainGenerator> Option)
+{
+	return SNew(STextBlock).Text(FText::FromName((*Option).Name));
+}
+
+void SGeneratorBox::OptionSelect(TSharedPtr<FTerrainGenerator> SelectOption, ESelectInfo::Type)
+{
+	((FDynamicTerrainMode*)GLevelEditorModeTools().GetActiveMode(FDynamicTerrainMode::DynamicTerrainModeID))->SelectGenerator(SelectOption);
+}
 
 /// Editor Commands ///
 
@@ -111,12 +141,14 @@ void FDynamicTerrainDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilde
 	{
 		TSharedPtr<FUICommandList> command_list = mode->GetCommandList();
 		TerrainModeID current_mode = mode->GetMode();
+
+		DetailBuilder.EditCategory("Generator", FText::GetEmpty(), ECategoryPriority::Important).SetCategoryVisibility(false);
 		
 		if (current_mode == TerrainModeID::MANAGE)
 		{
 			if (mode->GetSelected() != nullptr)
 			{
-				// Add a button to the manager interface
+				// Add a button to edit terrain
 				IDetailCategoryBuilder& category_manage = DetailBuilder.EditCategory("Terrain Settings", FText::GetEmpty(), ECategoryPriority::Default);
 				category_manage.AddCustomRow(FText::GetEmpty())
 					[
@@ -125,11 +157,11 @@ void FDynamicTerrainDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilde
 			}
 			else
 			{
-				// Add a text box with instructions
+				// Add a text box with instructions for selecting terrain if none are selected
 				IDetailCategoryBuilder& category_text = DetailBuilder.EditCategory("Select", FText::GetEmpty(), ECategoryPriority::Default);
 				category_text.AddCustomRow(FText::GetEmpty())
 					[
-						SNew(STextBlock).Text(LOCTEXT("NoSelectionManage", "Click on a terrain to select it."))
+						SNew(STextBlock).Text(LOCTEXT("NoSelectionManage", "Click on a terrain to select it, or click 'Create' to create a new terrain if none exist"))
 					];
 
 				DetailBuilder.EditCategory("Terrain Settings", FText::GetEmpty(), ECategoryPriority::Important).SetCategoryVisibility(false);
@@ -140,7 +172,7 @@ void FDynamicTerrainDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilde
 		}
 		else if (current_mode == TerrainModeID::CREATE)
 		{
-			// Add a button to the manager interface
+			// Add a button to create a new terrain
 			IDetailCategoryBuilder& category_create = DetailBuilder.EditCategory("Terrain Settings", FText::GetEmpty(), ECategoryPriority::Default);
 			category_create.AddCustomRow(FText::GetEmpty())
 				[
@@ -149,6 +181,49 @@ void FDynamicTerrainDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilde
 
 			// Hide categories
 			DetailBuilder.EditCategory("Brush Settings", FText::GetEmpty(), ECategoryPriority::Important).SetCategoryVisibility(false);
+		}
+		else if (current_mode == TerrainModeID::GENERATE)
+		{
+			IDetailCategoryBuilder& category_generate = DetailBuilder.EditCategory("Terrain Generator", FText::GetEmpty(), ECategoryPriority::Default);
+
+			// Generator selection combo box
+			category_generate.AddCustomRow(FText::GetEmpty())
+				[
+					SNew(SGeneratorBox)
+				];
+
+			// Display parameters for the current generator
+			FTerrainGenerator* generator = mode->GetGenerator().Get();
+			for (int32 i = 0; i < generator->Parameters.Num(); ++i)
+			{
+				// Create the name of the property
+				FString param_name;
+				if (generator->IsFloat[i])
+				{
+					param_name = "FloatProperties[";
+				}
+				else
+				{
+					param_name = "IntProperties[";
+				}
+				param_name.AppendInt(i);
+				param_name.Append("]");
+
+				// Add the property with the matching name
+				category_generate.AddCustomRow(FText::GetEmpty())
+					[
+						SNew(SProperty, DetailBuilder.GetProperty(*param_name)).DisplayName(FText::FromString(generator->Parameters[i]))
+					];
+			}
+
+			category_generate.AddCustomRow(FText::GetEmpty())
+				[
+					SNew(SButton).Text(LOCTEXT("GenerateButton", "Generate")).OnClicked_Static(&FDynamicTerrainDetails::GenerateButton)
+				];
+
+			// Hide categories
+			DetailBuilder.EditCategory("Brush Settings", FText::GetEmpty(), ECategoryPriority::Important).SetCategoryVisibility(false);
+			DetailBuilder.EditCategory("Terrain Settings", FText::GetEmpty(), ECategoryPriority::Important).SetCategoryVisibility(false);
 		}
 		else if (current_mode == TerrainModeID::SCULPT)
 		{
@@ -210,8 +285,6 @@ void FDynamicTerrainDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilde
 			DetailBuilder.EditCategory("Terrain Settings", FText::GetEmpty(), ECategoryPriority::Important).SetCategoryVisibility(false);
 		}
 
-		///TODO
-
 		DetailBuilder.GetProperty("Strength")->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FDynamicTerrainDetails::UpdateBrush));
 		DetailBuilder.GetProperty("Size")->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FDynamicTerrainDetails::UpdateBrush));
 		DetailBuilder.GetProperty("Falloff")->SetOnPropertyValueChanged(FSimpleDelegate::CreateSP(this, &FDynamicTerrainDetails::UpdateBrush));
@@ -230,6 +303,13 @@ FReply FDynamicTerrainDetails::CreateButton()
 	return FReply::Handled();
 }
 
+FReply FDynamicTerrainDetails::GenerateButton()
+{
+	GetMode()->ProcessGenerateCommand();
+
+	return FReply::Handled();
+}
+
 FDynamicTerrainMode* FDynamicTerrainDetails::GetMode()
 {
 	return (FDynamicTerrainMode*)GLevelEditorModeTools().GetActiveMode(FDynamicTerrainMode::DynamicTerrainModeID);
@@ -245,6 +325,11 @@ void FDynamicTerrainDetails::UpdateBrush()
 		tool->Size = mode->Settings->Size;
 		tool->Falloff = mode->Settings->Falloff;
 	}
+}
+
+TSharedRef<IPropertyHandle> FDynamicTerrainDetails::GetGeneratorParameter(IDetailLayoutBuilder& DetailBuilder, int32 Ref)
+{
+	return DetailBuilder.GetProperty("asdf", nullptr, "asf");
 }
 
 #undef LOCTEXT_NAMESPACE

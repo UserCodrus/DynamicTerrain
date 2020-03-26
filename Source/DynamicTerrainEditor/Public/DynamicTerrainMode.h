@@ -25,6 +25,18 @@ struct FDynamicTerrainToolMode
 	const TerrainModeID ModeID;
 };
 
+struct FTerrainGenerator
+{
+	FTerrainGenerator(FName GennyName)
+	{
+		Name = GennyName;
+	}
+
+	FName Name;
+	TArray<FString> Parameters;
+	TArray<bool> IsFloat;
+};
+
 UCLASS()
 class ABrushProxy : public AActor
 {
@@ -44,6 +56,8 @@ protected:
 	UPROPERTY()
 		UBrushDecal* Decal = nullptr;
 };
+
+constexpr unsigned NUM_PROPERTIES = 10;
 
 UCLASS()
 class UDynamicTerrainSettings : public UObject
@@ -67,6 +81,13 @@ public:
 		float Falloff = 5.0f;
 	UPROPERTY(EditAnywhere, Category = "Brush Settings")
 		float Strength = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Generator")
+		FString FunctionName;
+	UPROPERTY(EditAnywhere, Category = "Generator")
+		int32 IntProperties[NUM_PROPERTIES];
+	UPROPERTY(EditAnywhere, Category = "Generator")
+		float FloatProperties[NUM_PROPERTIES];
 };
 
 class FDynamicTerrainMode : public FEdMode
@@ -119,34 +140,47 @@ public:
 	void ResizeTerrain();
 	// Create a new terrain
 	void CreateTerrain();
-
 	// Select a terrain object
 	void SelectTerrain(ATerrain* Terrain);
 
+	// Process a generator command
+	void ProcessGenerateCommand();
+	// Select a different generator
+	void SelectGenerator(TSharedPtr<FTerrainGenerator> Generator);
+	// Get the currently selected generator
+	TSharedPtr<FTerrainGenerator> GetGenerator();
+
 	// The identifier string for this editor mode
 	const static FEditorModeID DynamicTerrainModeID;
-	// The settings data used to display setting in the editor
+	// The settings data used to display settings in the editor via detail customization
 	UDynamicTerrainSettings* Settings;
+	// Terrain generator data for creating menus and processing commands
+	TArray<TSharedPtr<FTerrainGenerator>> Generators;
 
 protected:
-	// Set to true when clicking
+	// Set to true when clicking the left mouse button
 	bool MouseClick = false;
 	// Inverts the tool when shift is held
 	bool InvertTool = false;
 
-	// Terrain tools
+	// Terrain tools for sculpting terrain
 	FToolSet Tools;
+	// The map generator object used to generate heightmaps
+	UMapGenerator* MapGen;
 
 	// Tool modes
 	TArray<FDynamicTerrainToolMode*> Modes;
 	// The currently selected mode
 	FDynamicTerrainToolMode* CurrentMode = nullptr;
 
-	// The brush decal actor
+	// The brush decal used to display the range of sculpting brushes
 	ABrushProxy* Brush = nullptr;
 
 	// The terrain object being edited
 	ATerrain* SelectedTerrain = nullptr;
 	// The name of the last terrain selected
 	FString TerrainName;
+
+	// The current generator to use when the generate button is clicked in the editor
+	TSharedPtr<FTerrainGenerator> CurrentGenerator;
 };

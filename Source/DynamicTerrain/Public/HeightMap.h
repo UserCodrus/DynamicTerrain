@@ -41,7 +41,7 @@ protected:
 		int32 WidthY = 0;
 };
 
-UCLASS(Abstract)
+UCLASS()
 class DYNAMICTERRAIN_API UMapGenerator : public UObject
 {
 	GENERATED_BODY()
@@ -49,15 +49,18 @@ class DYNAMICTERRAIN_API UMapGenerator : public UObject
 public:
 	/// Map Generator Functions ///
 
+	UPROPERTY()
+		UHeightMap* Map = nullptr;
+
 	// Flatten the heightmap
 	UFUNCTION(BlueprintCallable)
-		static void Flat(UHeightMap* Map);
+		void Flat(float Height);
 
 	// Generate a map using plasma noise
 	UFUNCTION(BlueprintCallable)
-		static void Plasma(UHeightMap* Map, int32 Scale);
+		void Plasma(int32 Scale, float MaxHeight);
 
 	// Generate a map using multiple layers of perlin noise
 	UFUNCTION(BlueprintCallable)
-		static void Perlin(UHeightMap* Map, int32 Frequency, int32 Octaves, float Persistence);
+		void Perlin(int32 Frequency, int32 Octaves, float Persistence, float MaxHeight);
 };

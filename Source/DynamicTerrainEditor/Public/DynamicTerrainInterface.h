@@ -6,6 +6,21 @@
 #include "Framework/Commands/Commands.h"
 #include "IDetailCustomization.h"
 
+class SGeneratorBox : public SCompoundWidget
+{
+public:
+	SLATE_BEGIN_ARGS(SGeneratorBox)
+	{}
+	SLATE_END_ARGS()
+
+	// Construct the widget
+	void Construct(const FArguments& InArgs);
+	// Called when widgets are generated for the combobox list
+	TSharedRef<SWidget> OptionWidget(TSharedPtr<FTerrainGenerator> Option);
+	// Called when a combobox button is selected
+	void OptionSelect(TSharedPtr<FTerrainGenerator> SelectOption, ESelectInfo::Type);
+};
+
 class FDynamicTerrainEditorCommands : public TCommands<FDynamicTerrainEditorCommands>
 {
 public:
@@ -52,10 +67,14 @@ public:
 	static FReply ResizeButton();
 	// Called when the create button is clicked
 	static FReply CreateButton();
+	// Called when the generate button is clicked
+	static FReply GenerateButton();
 
 protected:
 	// Get the editor mode using these details
 	static FDynamicTerrainMode* GetMode();
 	// Update brush settings
 	void UpdateBrush();
+	// Get the property handle of a terrain generator parameter
+	TSharedRef<IPropertyHandle> GetGeneratorParameter(IDetailLayoutBuilder& DetailBuilder, int32 Ref);
 };

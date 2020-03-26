@@ -55,18 +55,18 @@ int32 UHeightMap::GetWidthY() const
 
 /// Map Generator Functions ///
 
-void UMapGenerator::Flat(UHeightMap* Map)
+void UMapGenerator::Flat(float Height)
 {
 	for (int32 i = 0; i < Map->GetWidthX(); ++i)
 	{
 		for (int32 j = 0; j < Map->GetWidthY(); ++j)
 		{
-			Map->SetHeight(i, j, 0.0f);
+			Map->SetHeight(i, j, Height);
 		}
 	}
 }
 
-void UMapGenerator::Plasma(UHeightMap* Map, int32 Scale)
+void UMapGenerator::Plasma(int32 Scale, float MaxHeight)
 {
 	// Safety check for input values
 	if (Scale < 1)
@@ -88,12 +88,12 @@ void UMapGenerator::Plasma(UHeightMap* Map, int32 Scale)
 	{
 		for (int32 y = 0; y < width_y; ++y)
 		{
-			Map->SetHeight(x, y, noise.cubic((float)x, (float)y) * 256.0f);
+			Map->SetHeight(x, y, noise.cubic((float)x, (float)y) * MaxHeight);
 		}
 	}
 }
 
-void UMapGenerator::Perlin(UHeightMap* Map, int32 Frequency, int32 Octaves, float Persistence)
+void UMapGenerator::Perlin(int32 Frequency, int32 Octaves, float Persistence, float MaxHeight)
 {
 	// Safety check for input values
 	if (Frequency < 2)
@@ -141,7 +141,7 @@ void UMapGenerator::Perlin(UHeightMap* Map, int32 Frequency, int32 Octaves, floa
 				amplitude *= Persistence;
 			}
 
-			Map->SetHeight(x, y, height * 256.0f / total);
+			Map->SetHeight(x, y, height * MaxHeight / total);
 		}
 	}
 }

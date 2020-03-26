@@ -40,7 +40,10 @@ FDynamicTerrainMode::FDynamicTerrainMode()
 	Settings = NewObject<UDynamicTerrainSettings>(GetTransientPackage(), TEXT("DynamicTerrainSettings"));
 	Settings->AddToRoot();
 
-	// Create editor mode
+	MapGen = NewObject<UMapGenerator>(GetTransientPackage(), TEXT("DynamicTerrainMapGenerator"));
+	MapGen->AddToRoot();
+
+	// Create editor modes
 	Modes.SetNum((int)TerrainModeID::NUM);
 	Modes[(int)TerrainModeID::CREATE] = new FDynamicTerrainToolMode("Create", TerrainModeID::CREATE);
 	Modes[(int)TerrainModeID::SCULPT] = new FDynamicTerrainToolMode("Sculpt", TerrainModeID::SCULPT);
@@ -48,6 +51,48 @@ FDynamicTerrainMode::FDynamicTerrainMode()
 	Modes[(int)TerrainModeID::GENERATE] = new FDynamicTerrainToolMode("Generate", TerrainModeID::GENERATE);
 
 	CurrentMode = Modes[1];
+
+	// Create terrain generator data
+	for (int32 i = 0; i < 10; ++i)
+	{
+		Settings->IntProperties[i] = 0;
+		Settings->FloatProperties[i] = 0.0f;
+	}
+
+	// Get the names of all the generator functions
+	TArray<FName> fnames;
+	UMapGenerator::StaticClass()->GenerateFunctionList(fnames);
+
+	for (int32 i = 0; i < fnames.Num(); ++i)
+	{
+		Generators.Add(MakeShareable(new FTerrainGenerator(fnames[i])));
+
+		// Get the function parameters for the generator function
+		UFunction* funct = UMapGenerator::StaticClass()->FindFunctionByName(fnames[i]);
+		if (funct != nullptr)
+		{
+			for (TFieldIterator<UProperty> it = TFieldIterator<UProperty>(funct); it; ++it)
+			{
+				UProperty* prop = *it;
+
+				// Make sure the property is a numeric type
+				if (UNumericProperty* nprop = Cast<UNumericProperty>(prop))
+				{
+					// Get the name and type of the parameter
+					Generators.Last()->IsFloat.Push(nprop->IsFloatingPoint());
+					Generators.Last()->Parameters.Push(nprop->GetName());
+				}
+				else
+				{
+					// Ignore the generator if it has non-numeric properties
+					Generators.Pop();
+					break;
+				}
+			}
+		}
+	}
+
+	CurrentGenerator = Generators.Last();
 }
 
 FDynamicTerrainMode::~FDynamicTerrainMode()
@@ -59,6 +104,8 @@ FDynamicTerrainMode::~FDynamicTerrainMode()
 	Modes.Empty();
 
 	Settings->RemoveFromRoot();
+	MapGen->RemoveFromRoot();
+	MapGen->Map = nullptr;
 }
 
 /// Engine Functions ///
@@ -84,6 +131,7 @@ void FDynamicTerrainMode::Enter()
 	for (TActorIterator<ATerrain> itr(GetWorld()); itr; ++itr)
 	{
 		SelectedTerrain = *itr;
+		MapGen->Map = SelectedTerrain->GetMap();
 		if (SelectedTerrain->GetName() == TerrainName)
 		{
 			break;
@@ -116,6 +164,7 @@ void FDynamicTerrainMode::Exit()
 {
 	// Deselect the terrain to prevent dangling pointerse
 	SelectedTerrain = nullptr;
+	MapGen->Map = nullptr;
 
 	// Destroy the brush proxy
 	Brush->Destroy();
@@ -455,8 +504,51 @@ void FDynamicTerrainMode::SelectTerrain(ATerrain* Terrain)
 {
 	SelectedTerrain = Terrain;
 	TerrainName = SelectedTerrain->GetName();
+	MapGen->Map = SelectedTerrain->GetMap();
 
 	ModeUpdate();
+}
+
+void FDynamicTerrainMode::ProcessGenerateCommand(/*const TCHAR* Command*/)
+{
+	if (MapGen->Map == nullptr || CurrentGenerator == nullptr)
+		return;
+
+	// Create a console command using parameters from the settings panel
+	FString command(CurrentGenerator->Name.ToString());
+
+	for (int32 i = 0; i < CurrentGenerator->IsFloat.Num(); ++i)
+	{
+		command.Append(" ");
+
+		if (CurrentGenerator->IsFloat[i])
+		{
+			command.Append(FString::SanitizeFloat(Settings->FloatProperties[i]));
+		}
+		else
+		{
+			command.AppendInt(Settings->IntProperties[i]);
+		}
+	}
+
+	// Run the script command passed into the function
+	MapGen->CallFunctionByNameWithArguments(*command, *GetGlobalLogSingleton(), MapGen, true);
+	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, command);
+	SelectedTerrain->Refresh();
+}
+
+void FDynamicTerrainMode::SelectGenerator(TSharedPtr<FTerrainGenerator> Generator)
+{
+	if (Generator != nullptr)
+	{
+		CurrentGenerator = Generator;
+		((FDynamicTerrainModeToolkit*)GetToolkit().Get())->RefreshDetails();
+	}
+}
+
+TSharedPtr<FTerrainGenerator> FDynamicTerrainMode::GetGenerator()
+{
+	return CurrentGenerator;
 }
 
 #undef LOCTEXT_NAMESPACE
