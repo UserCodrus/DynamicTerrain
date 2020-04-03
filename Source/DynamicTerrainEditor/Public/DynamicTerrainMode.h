@@ -2,7 +2,7 @@
 
 #include "Terrain.h"
 #include "TerrainTools.h"
-#include "TerrainComponents.h"
+#include "TerrainBrushDecal.h"
 
 #include "EdMode.h"
 #include "EditorModeRegistry.h"

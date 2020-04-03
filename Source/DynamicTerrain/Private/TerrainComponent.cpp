@@ -1,4 +1,4 @@
-#include "Component.h"
+#include "TerrainComponent.h"
 
 #include "HAL/RunnableThread.h"
 #include "KismetProceduralMeshLibrary.h"

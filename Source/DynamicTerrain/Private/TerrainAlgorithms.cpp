@@ -1,4 +1,4 @@
-#include "Algorithms.h"
+#include "TerrainAlgorithms.h"
 
 #include <random>
 #include <stdexcept>

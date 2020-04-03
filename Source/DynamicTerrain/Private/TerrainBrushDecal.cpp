@@ -1,4 +1,4 @@
-#include "TerrainComponents.h"
+#include "TerrainBrushDecal.h"
 
 #include "Materials/Material.h"
 #include "Materials/MaterialInstanceDynamic.h"

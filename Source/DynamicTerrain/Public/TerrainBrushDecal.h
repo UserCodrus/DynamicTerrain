@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/DecalComponent.h"
 
-#include "TerrainComponents.generated.h"
+#include "TerrainBrushDecal.generated.h"
 
 UCLASS()
 class DYNAMICTERRAIN_API UBrushDecal : public UDecalComponent

@@ -1,5 +1,5 @@
-#include "HeightMap.h"
-#include "Algorithms.h"
+#include "TerrainHeightMap.h"
+#include "TerrainAlgorithms.h"
 
 #include "ProceduralMeshComponent.h"
 

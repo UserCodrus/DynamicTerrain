@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 
-#include "HeightMap.generated.h"
+#include "TerrainHeightMap.generated.h"
 
 UCLASS()
 class DYNAMICTERRAIN_API UHeightMap : public UObject
