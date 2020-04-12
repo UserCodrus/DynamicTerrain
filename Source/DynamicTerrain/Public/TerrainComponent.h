@@ -4,7 +4,26 @@
 #include "ProceduralMeshComponent.h"
 #include "HAL/Runnable.h"
 
-#include "Terrain.h"
+#include "TerrainComponent.generated.h"
+
+class ATerrain;
+
+USTRUCT()
+struct FTerrainVertex
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+		FVector Position;
+	UPROPERTY()
+		FVector Normal;
+	UPROPERTY()
+		FVector Tangent;
+	UPROPERTY()
+		FVector2D UV;
+
+	FTerrainVertex() : Position(0.0f, 0.0f, 0.0f), Normal(0.0f, 0.0f, 1.0f), Tangent(1.0f, 0.0f, 0.0f), UV(0.0f, 0.0f) {}
+};
 
 class ComponentBuilder : public FRunnable
 {
@@ -37,4 +56,37 @@ private:
 	int32 ComponentY;
 
 	bool Idle;
+};
+
+UCLASS(hidecategories = (Object, LOD, Physics, Collision), editinlinenew, meta = (BlueprintSpawnableComponent), ClassGroup = Rendering)
+class DYNAMICTERRAIN_API UTerrainComponent : public UMeshComponent
+{
+	GENERATED_BODY()
+
+	/// Mesh Component Interface ///
+
+public:
+	UTerrainComponent(const FObjectInitializer& ObjectInitializer);
+
+	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
+	virtual int32 GetNumMaterials() const override;
+
+private:
+	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
+
+	/// Terrain Interface ///
+
+public:
+	// Generate vertices for the component from a terrain
+	void GenerateVertices(int32 X, int32 Y, ATerrain* Terrain);
+
+private:
+	// The vertices for the mesh and collision
+	UPROPERTY(VisibleAnywhere)
+		TArray<FTerrainVertex> VertexBuffer;
+	// The mesh indices
+	UPROPERTY(VisibleAnywhere)
+		TArray<uint32> IndexBuffer;
+
+	friend class FTerrainComponentSceneProxy;
 };
