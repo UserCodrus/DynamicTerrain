@@ -180,16 +180,18 @@ public:
 
 	virtual void GetDynamicMeshElements(const TArray< const FSceneView* >& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, class FMeshElementCollector& Collector) const override
 	{
-		// Get the wireframe material
-		const bool bWireframe = AllowDebugViewmodes() && ViewFamily.EngineShowFlags.Wireframe;
-		FColoredMaterialRenderProxy* WireframeMaterialInstance = new FColoredMaterialRenderProxy(GEngine->WireframeMaterial ? GEngine->WireframeMaterial->GetRenderProxy() : nullptr, FLinearColor(0, 0.5f, 1.f));
-		Collector.RegisterOneFrameMaterialProxy(WireframeMaterialInstance);
+		// Check to see if wireframe rendering is enabled
+		const bool wireframe = AllowDebugViewmodes() && ViewFamily.EngineShowFlags.Wireframe;
 
 		// Get the material proxy from either the current material or the wireframe material
 		FMaterialRenderProxy* material_proxy = nullptr;
-		if (bWireframe)
+		if (wireframe)
 		{
-			material_proxy = WireframeMaterialInstance;
+			// Get the wireframe material
+			FColoredMaterialRenderProxy* wireframe_material = new FColoredMaterialRenderProxy(GEngine->WireframeMaterial ? GEngine->WireframeMaterial->GetRenderProxy() : nullptr, FLinearColor(0.0f, 0.5f, 1.0f));
+			Collector.RegisterOneFrameMaterialProxy(wireframe_material);
+
+			material_proxy = wireframe_material;
 		}
 		else
 		{
@@ -205,7 +207,7 @@ public:
 
 				// Set up the mesh
 				FMeshBatch& mesh = Collector.AllocateMesh();
-				mesh.bWireframe = bWireframe;
+				mesh.bWireframe = wireframe;
 				mesh.VertexFactory = &VertexFactory;
 				mesh.MaterialRenderProxy = material_proxy;
 				mesh.ReverseCulling = IsLocalToWorldDeterminantNegative();
@@ -213,7 +215,7 @@ public:
 				mesh.DepthPriorityGroup = SDPG_World;
 				mesh.bCanApplyViewModeOverrides = false;
 
-				// Set up the first element of the mesh 
+				// Set up the first element of the mesh (we only need one)
 				FMeshBatchElement& element = mesh.Elements[0];
 				element.IndexBuffer = &IndexBuffer;
 				element.FirstIndex = 0;
@@ -236,6 +238,18 @@ public:
 				Collector.AddMesh(view_index, mesh);
 			}
 		}
+
+		// Draw bounds and collision in debug builds
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		for (int32 view_index = 0; view_index < Views.Num(); ++view_index)
+		{
+			if (VisibilityMap & (1 << view_index))
+			{
+				// Render the object bounds
+				RenderBounds(Collector.GetPDI(view_index), ViewFamily.EngineShowFlags, GetBounds(), IsSelected());
+			}
+		}
+#endif
 	}
 
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
@@ -269,7 +283,9 @@ protected:
 
 UTerrainComponent::UTerrainComponent(const FObjectInitializer& ObjectInitializer)
 {
+	// Disable ticking for the component to save some CPU cycles
 	PrimaryComponentTick.bCanEverTick = false;
+
 	SetCollisionProfileName(UCollisionProfile::BlockAllDynamic_ProfileName);
 }
 
