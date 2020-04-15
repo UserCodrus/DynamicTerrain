@@ -221,12 +221,12 @@ FVector2D FTerrainTool::WorldVectorToMapVector(ATerrain* Terrain, FVector WorldP
 
 	FVector corner = Terrain->GetActorLocation();
 	corner.X -= xwidth * scale.X;
-	corner.Y += ywidth * scale.Y;
+	corner.Y -= ywidth * scale.Y;
 
 	// Get the heightmap coordinates of the point
 	FVector2D loc;
 	loc.X = (WorldPosition.X - corner.X) / scale.X + 1.0f;
-	loc.Y = -(WorldPosition.Y - corner.Y) / scale.Y + 1.0f;
+	loc.Y = (WorldPosition.Y - corner.Y) / scale.Y + 1.0f;
 
 	return loc;
 }
