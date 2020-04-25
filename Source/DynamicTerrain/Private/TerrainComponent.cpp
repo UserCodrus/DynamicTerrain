@@ -106,6 +106,9 @@ int32 ComponentBuilder::GetSection()
 
 UTerrainComponent::UTerrainComponent(const FObjectInitializer& ObjectInitializer)
 {
+	Size = 0;
+	Tiling = 1.0f;
+
 	// Disable ticking for the component to save some CPU cycles
 	PrimaryComponentTick.bCanEverTick = false;
 
@@ -116,7 +119,7 @@ FPrimitiveSceneProxy* UTerrainComponent::CreateSceneProxy()
 {
 	FPrimitiveSceneProxy* proxy = nullptr;
 
-	if (VertexBuffer.Num() > 0 && IndexBuffer.Num() > 0)
+	if (VertexBuffer.Num() > 0 && IndexBuffer.Num() > 0 && Size > 1)
 	{
 		proxy = new FTerrainComponentSceneProxy(this);
 	}
@@ -148,9 +151,24 @@ FBoxSphereBounds UTerrainComponent::CalcBounds(const FTransform& LocalToWorld) c
 
 /// Terrain Interface ///
 
-void UTerrainComponent::GenerateVertices(int32 X, int32 Y, ATerrain* Terrain)
+void UTerrainComponent::SetSize(uint32 NewSize)
 {
-	Terrain->GenerateMeshSection(X, Y, VertexBuffer, IndexBuffer);
+	if (NewSize > 1 && NewSize != Size)
+	{
+		Size = NewSize;
+		MarkRenderStateDirty();
+	}
+}
+
+void UTerrainComponent::SetOffset(int32 X, int32 Y)
+{
+	XOffset = X;
+	YOffset = Y;
+}
+
+void UTerrainComponent::GenerateVertices(ATerrain* Terrain)
+{
+	Terrain->GenerateMeshSection(XOffset, YOffset, VertexBuffer, IndexBuffer);
 	SetMaterial(0, Terrain->GetMaterials());
 	MarkRenderStateDirty();
 	UpdateBounds();

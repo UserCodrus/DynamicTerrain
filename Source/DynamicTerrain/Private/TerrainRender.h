@@ -23,11 +23,11 @@ public:
 	// Delete the buffer
 	virtual void ReleaseRHI() override;
 
-	// Reallocate the buffer
-	void Reset(uint32 VertexCount);
-
 	// Bind the buffer to vertex factory data
 	virtual void Bind(FLocalVertexFactory::FDataType& DataType) = 0;
+
+	// The size of the component stored in the buffer
+	uint32 ComponentSize;
 
 protected:
 	// Whether the buffer will be used for static or dynamic rendering (currently only supports dynamic)
@@ -41,9 +41,6 @@ protected:
 	const uint32 Stride;
 	// The format of the buffer data
 	const uint8 Format;
-
-	// The number of vertices
-	uint32 Vertices;
 };
 
 class FTerrainPositionBuffer : public FTerrainVertexBuffer
@@ -63,11 +60,9 @@ class FTerrainUVBuffer : public FTerrainVertexBuffer
 public:
 	FTerrainUVBuffer();
 
-	void Set();
+	void FillBuffer(int32 XOffset, int32 YOffset, float Tiling);
 
 	virtual void Bind(FLocalVertexFactory::FDataType& DataType);
-
-	TArray<FVector2D> Data;
 };
 
 class FTerrainTangentBuffer : public FTerrainVertexBuffer
@@ -87,6 +82,8 @@ class FTerrainComponentSceneProxy : public FPrimitiveSceneProxy
 public:
 	FTerrainComponentSceneProxy(UTerrainComponent* Component);
 	virtual ~FTerrainComponentSceneProxy();
+
+	/// Scene Proxy Interface ///
 
 	SIZE_T GetTypeHash() const override
 	{
@@ -113,19 +110,28 @@ public:
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override;
 
 	void SizeBuffers();
-	void FillBuffers();
+	void FillBuffers(int32 X, int32 Y, float Tiling);
 	void BindData();
 
-protected:
-	FTerrainPositionBuffer PositionBuffer;
-	FTerrainUVBuffer UVBuffer;
-	FTerrainTangentBuffer TangentBuffer;
-	//FTerrainColorBuffer ColorBuffer;
+	/// Proxy Update Functions ///
 
-	//FStaticMeshVertexBuffers VertexBuffers;
+	// Change the scaling of the UV data
+	void SetTiling(float Value);
+
+protected:
+	// Vertex position data
+	FTerrainPositionBuffer PositionBuffer;
+	// Vertex tanget and normal vectors
+	FTerrainTangentBuffer TangentBuffer;
+	// Vertex UVs
+	FTerrainUVBuffer UVBuffer;
+
+	// The triangles used by the component
 	FDynamicMeshIndexBuffer32 IndexBuffer;
+	// The vertex factory for storing vertex data
 	FLocalVertexFactory VertexFactory;
 
+	// The material used to render the component
 	UMaterialInterface* Material;
 	FMaterialRelevance MaterialRelevance;
 };

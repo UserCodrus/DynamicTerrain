@@ -77,8 +77,12 @@ private:
 	/// Terrain Interface ///
 
 public:
+	// Set the size of the component
+	void SetSize(uint32 NewSize);
+	// Change the location of the component
+	void SetOffset(int32 X, int32 Y);
 	// Generate vertices for the component from a terrain
-	void GenerateVertices(int32 X, int32 Y, ATerrain* Terrain);
+	void GenerateVertices(ATerrain* Terrain);
 
 private:
 	// The vertices for the mesh and collision
@@ -87,6 +91,20 @@ private:
 	// The mesh indices
 	UPROPERTY(VisibleAnywhere)
 		TArray<uint32> IndexBuffer;
+	// The size of the component
+	UPROPERTY(VisibleAnywhere)
+		uint32 Size;
+
+	// The offset of the component on the X axis
+	UPROPERTY(VisibleAnywhere)
+		int32 XOffset;
+	// The offset of the component on the Y axis
+	UPROPERTY(VisibleAnywhere)
+		int32 YOffset;
+
+	// The UV Tiling of the component
+	UPROPERTY(VisibleAnywhere)
+		float Tiling;
 
 	friend class FTerrainComponentSceneProxy;
 };

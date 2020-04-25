@@ -7,18 +7,18 @@
 
 /// Rendering Buffers ///
 
-FTerrainVertexBuffer::FTerrainVertexBuffer(int32 DataSize, uint32 BufferStride, uint8 BufferFormat) : StaticFlag(BUF_Dynamic), Size(DataSize), Stride(BufferStride), Format(BufferFormat), Vertices(0)
+FTerrainVertexBuffer::FTerrainVertexBuffer(int32 DataSize, uint32 BufferStride, uint8 BufferFormat) : ComponentSize(0), StaticFlag(BUF_Dynamic), Size(DataSize), Stride(BufferStride), Format(BufferFormat)
 {
 	// Initalizers only
 }
 
 void FTerrainVertexBuffer::InitRHI()
 {
-	if (Size > 0 && Vertices > 0)
+	if (Size > 0 && ComponentSize > 0)
 	{
 		// Create the RHI buffer
 		FRHIResourceCreateInfo info;
-		VertexBufferRHI = RHICreateVertexBuffer(Vertices * Size, StaticFlag | BUF_ShaderResource, info);
+		VertexBufferRHI = RHICreateVertexBuffer(ComponentSize * ComponentSize * Size, StaticFlag | BUF_ShaderResource, info);
 
 		// Create the shader resource view if needed
 		if (RHISupportsManualVertexFetch(GMaxRHIShaderPlatform))
@@ -34,13 +34,12 @@ void FTerrainVertexBuffer::ReleaseRHI()
 	FVertexBuffer::ReleaseRHI();
 }
 
-void FTerrainVertexBuffer::Reset(uint32 VertexCount)
+/*void FTerrainVertexBuffer::Reset(uint32 NewSize)
 {
-	Vertices = VertexCount;
-
-	//ReleaseResource();
-	//InitResource();
-}
+	ComponentSize = NewSize;
+	ReleaseResource();
+	InitResource();
+}*/
 
 FTerrainPositionBuffer::FTerrainPositionBuffer() : FTerrainVertexBuffer(sizeof(FVector), sizeof(float), PF_R32_FLOAT)
 {
@@ -49,7 +48,7 @@ FTerrainPositionBuffer::FTerrainPositionBuffer() : FTerrainVertexBuffer(sizeof(F
 
 void FTerrainPositionBuffer::Set()
 {
-	if (Size > 0 && Vertices > 0)
+	if (Size > 0 && ComponentSize > 0)
 	{
 		// Make sure the RHI buffer is initialized
 		check(VertexBufferRHI.IsValid());
@@ -73,14 +72,22 @@ FTerrainUVBuffer::FTerrainUVBuffer() : FTerrainVertexBuffer(sizeof(FVector2D), s
 	// Initializers only
 }
 
-void FTerrainUVBuffer::Set()
+void FTerrainUVBuffer::FillBuffer(int32 XOffset, int32 YOffset, float Tiling)
 {
-	if (Size > 0 && Vertices > 0)
+	if (Size > 0 && ComponentSize > 0)
 	{
 		check(VertexBufferRHI.IsValid());
 
-		void* buffer = RHILockVertexBuffer(VertexBufferRHI, 0, Data.Num() * Size, RLM_WriteOnly);
-		FMemory::Memcpy(buffer, Data.GetData(), Data.Num() * Size);
+		// Fill the buffer with UVs
+		FVector2D* buffer = (FVector2D*)RHILockVertexBuffer(VertexBufferRHI, 0, ComponentSize * ComponentSize * Size, RLM_WriteOnly);
+		for (uint32 y = 0; y < ComponentSize; ++y)
+		{
+			for (uint32 x = 0; x < ComponentSize; ++x)
+			{
+				*buffer = FVector2D((XOffset + x) * Tiling, (YOffset + y) * Tiling);
+				++buffer;
+			}
+		}
 		RHIUnlockVertexBuffer(VertexBufferRHI);
 	}
 }
@@ -103,7 +110,7 @@ FTerrainTangentBuffer::FTerrainTangentBuffer() : FTerrainVertexBuffer(sizeof(FPa
 
 void FTerrainTangentBuffer::Set()
 {
-	if (Size > 0 && Vertices > 0)
+	if (Size > 0 && ComponentSize > 0)
 	{
 		check(VertexBufferRHI.IsValid());
 
@@ -135,14 +142,19 @@ FTerrainComponentSceneProxy::FTerrainComponentSceneProxy(UTerrainComponent* Comp
 		FTerrainVertex& tv = Component->VertexBuffer[i];
 
 		PositionBuffer.Data.Add(tv.Position);
-		UVBuffer.Data.Add(tv.UV);
+		//UVBuffer.Data.Add(tv.UV);
 		FTerrainTangents tans;
 		tans.Normal = tv.Normal;
 		tans.Tangent = tv.Tangent;
 		TangentBuffer.Data.Add(tans);
 	}
 
-	SizeBuffers();
+	// Set the size of the buffers
+	PositionBuffer.ComponentSize = Component->Size;
+	UVBuffer.ComponentSize = Component->Size;
+	TangentBuffer.ComponentSize = Component->Size;
+
+	//SizeBuffers();
 
 	// Initialize render resources
 	BeginInitResource(&PositionBuffer);
@@ -151,7 +163,7 @@ FTerrainComponentSceneProxy::FTerrainComponentSceneProxy(UTerrainComponent* Comp
 
 	BeginInitResource(&IndexBuffer);
 
-	FillBuffers();
+	FillBuffers(Component->XOffset * (Component->Size - 1), Component->YOffset * (Component->Size - 1), Component->Tiling);
 	BindData();
 
 	// Get the material
@@ -172,6 +184,8 @@ FTerrainComponentSceneProxy::~FTerrainComponentSceneProxy()
 
 	VertexFactory.ReleaseResource();
 }
+
+/// Scene Proxy Interface ///
 
 void FTerrainComponentSceneProxy::GetDynamicMeshElements(const TArray< const FSceneView* >& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, class FMeshElementCollector& Collector) const
 {
@@ -270,19 +284,19 @@ void FTerrainComponentSceneProxy::SizeBuffers()
 {
 	ENQUEUE_RENDER_COMMAND(FComponentSizeBuffers)([this](FRHICommandListImmediate& RHICmdList) {
 		// Set buffer sizes
-		PositionBuffer.Reset(PositionBuffer.Data.Num());
-		UVBuffer.Reset(UVBuffer.Data.Num());
-		TangentBuffer.Reset(TangentBuffer.Data.Num());
+		//PositionBuffer.Reset(PositionBuffer.Data.Num());
+		//UVBuffer.Reset(UVBuffer.Data.Num());
+		//TangentBuffer.Reset(TangentBuffer.Data.Num());
 		});
 }
 
-void FTerrainComponentSceneProxy::FillBuffers()
+void FTerrainComponentSceneProxy::FillBuffers(int32 X, int32 Y, float Tiling)
 {
-	ENQUEUE_RENDER_COMMAND(FComponentFillBuffers)([this](FRHICommandListImmediate& RHICmdList) {
+	ENQUEUE_RENDER_COMMAND(FComponentFillBuffers)([this, X, Y, Tiling](FRHICommandListImmediate& RHICmdList) {
 		// Load data for all buffers
 		PositionBuffer.Set();
-		UVBuffer.Set();
 		TangentBuffer.Set();
+		UVBuffer.FillBuffer(X, Y, Tiling);
 		});
 }
 
@@ -292,11 +306,18 @@ void FTerrainComponentSceneProxy::BindData()
 		// Load vertex factory data
 		FLocalVertexFactory::FDataType datatype;
 		PositionBuffer.Bind(datatype);
-		UVBuffer.Bind(datatype);
 		TangentBuffer.Bind(datatype);
+		UVBuffer.Bind(datatype);
 
 		// Initalize the vertex factory
 		VertexFactory.SetData(datatype);
 		VertexFactory.InitResource();
 		});
+}
+
+/// Proxy Update Functions ///
+
+void FTerrainComponentSceneProxy::SetTiling(float Value)
+{
+
 }

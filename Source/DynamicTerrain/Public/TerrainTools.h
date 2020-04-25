@@ -25,6 +25,8 @@ enum class TerrainToolID
 class DYNAMICTERRAIN_API FTerrainBrush
 {
 public:
+	virtual ~FTerrainBrush() {};
+
 	// Get the name of the brush for the editor UI
 	virtual FText GetName() const = 0;
 
@@ -100,6 +102,8 @@ protected:
 class DYNAMICTERRAIN_API FTerrainTool
 {
 public:
+	virtual ~FTerrainTool() {};
+
 	// Retrive the name of the tool for the editor UI
 	virtual FText GetName() const = 0;
 	// Retrieve the tool's internal name
