@@ -122,30 +122,6 @@ void FTerrainTangentBuffer::Bind(FLocalVertexFactory::FDataType& DataType)
 	DataType.TangentsSRV = ShaderResourceView;
 }
 
-FTerrainColorBuffer::FTerrainColorBuffer() : FTerrainVertexBuffer(sizeof(FColor), sizeof(FColor), PF_R8G8B8A8)
-{
-	// Initializers only
-}
-
-void FTerrainColorBuffer::Set()
-{
-	if (Size > 0 && Vertices > 0)
-	{
-		check(VertexBufferRHI.IsValid());
-
-		void* buffer = RHILockVertexBuffer(VertexBufferRHI, 0, Data.Num() * Size, RLM_WriteOnly);
-		FMemory::Memcpy(buffer, Data.GetData(), Data.Num() * Size);
-		RHIUnlockVertexBuffer(VertexBufferRHI);
-	}
-}
-
-void FTerrainColorBuffer::Bind(FLocalVertexFactory::FDataType& DataType)
-{
-	// Add color data
-	DataType.ColorComponent = FVertexStreamComponent(this, 0, Size, VET_Color, EVertexStreamUsage::ManualFetch);
-	DataType.ColorComponentsSRV = ShaderResourceView;
-}
-
 /// Terrain Scene Proxy ///
 
 FTerrainComponentSceneProxy::FTerrainComponentSceneProxy(UTerrainComponent* Component) : FPrimitiveSceneProxy(Component), VertexFactory(GetScene().GetFeatureLevel(), "FTerrainComponentSceneProxy"), MaterialRelevance(Component->GetMaterialRelevance(GetScene().GetFeatureLevel()))
@@ -154,21 +130,9 @@ FTerrainComponentSceneProxy::FTerrainComponentSceneProxy(UTerrainComponent* Comp
 	IndexBuffer.Indices = Component->IndexBuffer;
 
 	// Fill the vertex buffers
-	//TArray<FDynamicMeshVertex> vertices;
-	//vertices.AddUninitialized(Component->VertexBuffer.Num());
 	for (int32 i = 0; i < Component->VertexBuffer.Num(); ++i)
 	{
-		//FDynamicMeshVertex& dv = vertices[i];
 		FTerrainVertex& tv = Component->VertexBuffer[i];
-
-		/*dv.Position = tv.Position;
-		dv.Color = FColor(255, 255, 255);
-		dv.TextureCoordinate[0] = tv.UV;
-		dv.TextureCoordinate[1] = tv.UV;
-		dv.TextureCoordinate[2] = tv.UV;
-		dv.TextureCoordinate[3] = tv.UV;
-		dv.TangentX = tv.Tangent;
-		dv.TangentZ = tv.Normal;*/
 
 		PositionBuffer.Data.Add(tv.Position);
 		UVBuffer.Data.Add(tv.UV);
@@ -176,7 +140,6 @@ FTerrainComponentSceneProxy::FTerrainComponentSceneProxy(UTerrainComponent* Comp
 		tans.Normal = tv.Normal;
 		tans.Tangent = tv.Tangent;
 		TangentBuffer.Data.Add(tans);
-		ColorBuffer.Data.Add(FColor(255, 255, 255));
 	}
 
 	SizeBuffers();
@@ -185,7 +148,6 @@ FTerrainComponentSceneProxy::FTerrainComponentSceneProxy(UTerrainComponent* Comp
 	BeginInitResource(&PositionBuffer);
 	BeginInitResource(&UVBuffer);
 	BeginInitResource(&TangentBuffer);
-	BeginInitResource(&ColorBuffer);
 
 	BeginInitResource(&IndexBuffer);
 
@@ -202,14 +164,9 @@ FTerrainComponentSceneProxy::FTerrainComponentSceneProxy(UTerrainComponent* Comp
 
 FTerrainComponentSceneProxy::~FTerrainComponentSceneProxy()
 {
-	//VertexBuffers.PositionVertexBuffer.ReleaseResource();
-	//VertexBuffers.StaticMeshVertexBuffer.ReleaseResource();
-	//VertexBuffers.ColorVertexBuffer.ReleaseResource();
-
 	PositionBuffer.ReleaseResource();
 	UVBuffer.ReleaseResource();
 	TangentBuffer.ReleaseResource();
-	ColorBuffer.ReleaseResource();
 
 	IndexBuffer.ReleaseResource();
 
@@ -316,7 +273,6 @@ void FTerrainComponentSceneProxy::SizeBuffers()
 		PositionBuffer.Reset(PositionBuffer.Data.Num());
 		UVBuffer.Reset(UVBuffer.Data.Num());
 		TangentBuffer.Reset(TangentBuffer.Data.Num());
-		ColorBuffer.Reset(ColorBuffer.Data.Num());
 		});
 }
 
@@ -327,7 +283,6 @@ void FTerrainComponentSceneProxy::FillBuffers()
 		PositionBuffer.Set();
 		UVBuffer.Set();
 		TangentBuffer.Set();
-		ColorBuffer.Set();
 		});
 }
 
@@ -339,7 +294,6 @@ void FTerrainComponentSceneProxy::BindData()
 		PositionBuffer.Bind(datatype);
 		UVBuffer.Bind(datatype);
 		TangentBuffer.Bind(datatype);
-		ColorBuffer.Bind(datatype);
 
 		// Initalize the vertex factory
 		VertexFactory.SetData(datatype);

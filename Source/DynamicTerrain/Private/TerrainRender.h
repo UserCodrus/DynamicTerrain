@@ -82,18 +82,6 @@ public:
 	TArray<FTerrainTangents> Data;
 };
 
-class FTerrainColorBuffer : public FTerrainVertexBuffer
-{
-public:
-	FTerrainColorBuffer();
-
-	void Set();
-
-	virtual void Bind(FLocalVertexFactory::FDataType& DataType);
-
-	TArray<FColor> Data;
-};
-
 class FTerrainComponentSceneProxy : public FPrimitiveSceneProxy
 {
 public:
@@ -132,7 +120,7 @@ protected:
 	FTerrainPositionBuffer PositionBuffer;
 	FTerrainUVBuffer UVBuffer;
 	FTerrainTangentBuffer TangentBuffer;
-	FTerrainColorBuffer ColorBuffer;
+	//FTerrainColorBuffer ColorBuffer;
 
 	//FStaticMeshVertexBuffers VertexBuffers;
 	FDynamicMeshIndexBuffer32 IndexBuffer;
