@@ -46,7 +46,7 @@ FTerrainPositionBuffer::FTerrainPositionBuffer() : FTerrainVertexBuffer(sizeof(F
 	// Initializers only
 }
 
-void FTerrainPositionBuffer::Set()
+void FTerrainPositionBuffer::FillBuffer()
 {
 	if (Size > 0 && ComponentSize > 0)
 	{
@@ -56,6 +56,29 @@ void FTerrainPositionBuffer::Set()
 		// Copy data to the RHI buffer
 		void* buffer = RHILockVertexBuffer(VertexBufferRHI, 0, Data.Num() * Size, RLM_WriteOnly);
 		FMemory::Memcpy(buffer, Data.GetData(), Data.Num() * Size);
+		RHIUnlockVertexBuffer(VertexBufferRHI);
+	}
+}
+
+void FTerrainPositionBuffer::UpdateBuffer(TSharedPtr<FMapSection, ESPMode::ThreadSafe> Map)
+{
+	if (!Map.IsValid())
+		return;
+
+	if (Map->X == ComponentSize + 2 && Map->Y == ComponentSize + 2)
+	{
+		FVector* buffer = (FVector*)RHILockVertexBuffer(VertexBufferRHI, 0, ComponentSize * ComponentSize * Size, RLM_WriteOnly);
+
+		// Change the z value of vertices to match the map subsection
+		for (uint32 y = 0; y < ComponentSize; ++y)
+		{
+			for (uint32 x = 0; x < ComponentSize; ++x)
+			{
+				*buffer = FVector(x, y, Map->Data[y * Map->X + x]);
+				++buffer;
+			}
+		}
+
 		RHIUnlockVertexBuffer(VertexBufferRHI);
 	}
 }
@@ -120,6 +143,48 @@ void FTerrainTangentBuffer::Set()
 	}
 }
 
+void FTerrainTangentBuffer::UpdateBuffer(TSharedPtr<FMapSection, ESPMode::ThreadSafe> Map)
+{
+	if (!Map.IsValid())
+		return;
+
+	if (Map->X == ComponentSize + 2 && Map->Y == ComponentSize + 2)
+	{
+		FTerrainTangents* buffer = (FTerrainTangents*)RHILockVertexBuffer(VertexBufferRHI, 0, ComponentSize * ComponentSize * Size, RLM_WriteOnly);
+
+		// Fill the buffer with normals and tangents
+		for (uint32 y = 0; y < ComponentSize; ++y)
+		{
+			for (uint32 x = 0; x < ComponentSize; ++x)
+			{
+				int32 map_offset_x = x + 1;
+				int32 map_offset_y = y + 1;
+				float s01 = Map->Data[map_offset_x - 1 + map_offset_y * Map->X];
+				float s21 = Map->Data[map_offset_x + 1 + map_offset_y * Map->X];
+				float s10 = Map->Data[map_offset_x + (map_offset_y - 1) * Map->X];
+				float s12 = Map->Data[map_offset_x + (map_offset_y + 1) * Map->X];
+
+				// Get tangents in the x and y directions
+				FVector vx(2.0f, 0, s21 - s01);
+				FVector vy(0, 2.0f, s10 - s12);
+
+				// Calculate the cross product of the two tangents
+				vx.Normalize();
+				vy.Normalize();
+
+				FTerrainTangents tangents;
+				tangents.Normal = FVector::CrossProduct(vx, vy);
+				tangents.Tangent = FVector(vx.X, vx.Y, vx.Z);
+
+				*buffer = tangents;
+				++buffer;
+			}
+		}
+
+		RHIUnlockVertexBuffer(VertexBufferRHI);
+	}
+}
+
 void FTerrainTangentBuffer::Bind(FLocalVertexFactory::FDataType& DataType)
 {
 	// Add tangents
@@ -133,16 +198,21 @@ void FTerrainTangentBuffer::Bind(FLocalVertexFactory::FDataType& DataType)
 
 FTerrainComponentSceneProxy::FTerrainComponentSceneProxy(UTerrainComponent* Component) : FPrimitiveSceneProxy(Component), VertexFactory(GetScene().GetFeatureLevel(), "FTerrainComponentSceneProxy"), MaterialRelevance(Component->GetMaterialRelevance(GetScene().GetFeatureLevel()))
 {
+	// Get the map proxy data for this component
+	//FTerrainProxy* terrain_proxy = Component->TerrainProxy.Get();
+	//MapProxy = terrain_proxy->SectionProxies[Component->YOffset * terrain_proxy->XWidth + Component->XOffset];
+	MapProxy = Component->GetMapProxy();
+
 	// Fill the buffers
 	IndexBuffer.Indices = Component->IndexBuffer;
+	PositionBuffer.Data = Component->Vertices;
 
 	// Fill the vertex buffers
 	for (int32 i = 0; i < Component->VertexBuffer.Num(); ++i)
 	{
 		FTerrainVertex& tv = Component->VertexBuffer[i];
 
-		PositionBuffer.Data.Add(tv.Position);
-		//UVBuffer.Data.Add(tv.UV);
+		//PositionBuffer.Data.Add(tv.Position);
 		FTerrainTangents tans;
 		tans.Normal = tv.Normal;
 		tans.Tangent = tv.Tangent;
@@ -153,8 +223,6 @@ FTerrainComponentSceneProxy::FTerrainComponentSceneProxy(UTerrainComponent* Comp
 	PositionBuffer.ComponentSize = Component->Size;
 	UVBuffer.ComponentSize = Component->Size;
 	TangentBuffer.ComponentSize = Component->Size;
-
-	//SizeBuffers();
 
 	// Initialize render resources
 	BeginInitResource(&PositionBuffer);
@@ -280,22 +348,14 @@ FPrimitiveViewRelevance FTerrainComponentSceneProxy::GetViewRelevance(const FSce
 	return Result;
 }
 
-void FTerrainComponentSceneProxy::SizeBuffers()
-{
-	ENQUEUE_RENDER_COMMAND(FComponentSizeBuffers)([this](FRHICommandListImmediate& RHICmdList) {
-		// Set buffer sizes
-		//PositionBuffer.Reset(PositionBuffer.Data.Num());
-		//UVBuffer.Reset(UVBuffer.Data.Num());
-		//TangentBuffer.Reset(TangentBuffer.Data.Num());
-		});
-}
-
 void FTerrainComponentSceneProxy::FillBuffers(int32 X, int32 Y, float Tiling)
 {
 	ENQUEUE_RENDER_COMMAND(FComponentFillBuffers)([this, X, Y, Tiling](FRHICommandListImmediate& RHICmdList) {
 		// Load data for all buffers
-		PositionBuffer.Set();
-		TangentBuffer.Set();
+		//TangentBuffer.Set();
+		//PositionBuffer.FillBuffer();
+		PositionBuffer.UpdateBuffer(MapProxy);
+		TangentBuffer.UpdateBuffer(MapProxy);
 		UVBuffer.FillBuffer(X, Y, Tiling);
 		});
 }

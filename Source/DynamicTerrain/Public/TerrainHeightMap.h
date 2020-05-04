@@ -4,6 +4,21 @@
 
 #include "TerrainHeightMap.generated.h"
 
+struct FMapSection
+{
+	TArray<float> Data;
+	int32 X = 0;
+	int32 Y = 0;
+
+	FMapSection() {};
+	FMapSection(int32 XWidth, int32 YWidth)
+	{
+		X = XWidth;
+		Y = YWidth;
+		Data.SetNumZeroed(X * Y);
+	}
+};
+
 UCLASS()
 class DYNAMICTERRAIN_API UHeightMap : public UObject
 {
@@ -22,6 +37,9 @@ public:
 		float BPGetHeight(int32 X, int32 Y) const;
 
 	/// Native Functions ///
+
+	// Get a copy of a portion of the map
+	inline void GetMapSection(FMapSection* Section, FIntPoint Min);
 
 	inline float GetHeight(uint32 X, uint32 Y) const;
 	inline void SetHeight(uint32 X, uint32 Y, float Height);

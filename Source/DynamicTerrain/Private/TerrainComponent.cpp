@@ -118,8 +118,9 @@ UTerrainComponent::UTerrainComponent(const FObjectInitializer& ObjectInitializer
 FPrimitiveSceneProxy* UTerrainComponent::CreateSceneProxy()
 {
 	FPrimitiveSceneProxy* proxy = nullptr;
+	VerifyMapProxy();
 
-	if (VertexBuffer.Num() > 0 && IndexBuffer.Num() > 0 && Size > 1)
+	if (VertexBuffer.Num() > 0 && IndexBuffer.Num() > 0 && MapProxy.IsValid())
 	{
 		proxy = new FTerrainComponentSceneProxy(this);
 	}
@@ -136,9 +137,9 @@ FBoxSphereBounds UTerrainComponent::CalcBounds(const FTransform& LocalToWorld) c
 {
 	FBox bound(ForceInit);
 
-	for (int32 i = 0; i < VertexBuffer.Num(); ++i)
+	for (int32 i = 0; i < Vertices.Num(); ++i)
 	{
-		bound += LocalToWorld.TransformPosition(VertexBuffer[i].Position);
+		bound += LocalToWorld.TransformPosition(Vertices[i]);
 	}
 
 	FBoxSphereBounds boxsphere;
@@ -151,19 +152,58 @@ FBoxSphereBounds UTerrainComponent::CalcBounds(const FTransform& LocalToWorld) c
 
 /// Terrain Interface ///
 
+void UTerrainComponent::Initialize(ATerrain* Terrain, int32 X, int32 Y)
+{
+	XOffset = X;
+	YOffset = Y;
+
+	SetSize(Terrain->GetComponentSize());
+
+	MapProxy = Terrain->GetProxy()->SectionProxies[Y * Terrain->GetXWidth() + X];
+}
+
+void UTerrainComponent::CreateMeshData()
+{
+	// Create vertex data
+	Vertices.Empty();
+	Vertices.SetNumUninitialized(Size * Size);
+	for (uint32 y = 0; y < Size; ++y)
+	{
+		for (uint32 x = 0; x < Size; ++x)
+		{
+			Vertices[y * Size + x] = FVector(x, y, 0.0f);
+		}
+	}
+
+	// Create triangles
+	uint32 polygons = Size - 1;
+	IndexBuffer.Empty();
+	IndexBuffer.SetNumUninitialized(polygons * polygons * 6);
+	for (uint32 y = 0; y < polygons; ++y)
+	{
+		for (uint32 x = 0; x < polygons; ++x)
+		{
+			uint32 i = (y * polygons + x) * 6;
+
+			IndexBuffer[i] = x + (y * Size);
+			IndexBuffer[i + 1] = 1 + x + (y + 1) * Size;
+			IndexBuffer[i + 2] = 1 + x + y * Size;
+
+			IndexBuffer[i + 3] = x + (y * Size);
+			IndexBuffer[i + 4] = x + (y + 1) * Size;
+			IndexBuffer[i + 5] = 1 + x + (y + 1) * Size;
+		}
+	}
+}
+
 void UTerrainComponent::SetSize(uint32 NewSize)
 {
 	if (NewSize > 1 && NewSize != Size)
 	{
 		Size = NewSize;
+		CreateMeshData();
 		MarkRenderStateDirty();
 	}
-}
-
-void UTerrainComponent::SetOffset(int32 X, int32 Y)
-{
-	XOffset = X;
-	YOffset = Y;
 }
 
 void UTerrainComponent::GenerateVertices(ATerrain* Terrain)
@@ -172,4 +212,45 @@ void UTerrainComponent::GenerateVertices(ATerrain* Terrain)
 	SetMaterial(0, Terrain->GetMaterials());
 	MarkRenderStateDirty();
 	UpdateBounds();
+}
+
+void UTerrainComponent::Update(TSharedPtr<FMapSection, ESPMode::ThreadSafe> NewSection)
+{
+	MapProxy = NewSection;
+
+	// Update collision vertex cache
+	for (uint32 y = 0; y < Size; ++y)
+	{
+		for (uint32 x = 0; x < Size; ++x)
+		{
+			Vertices[y * Size + x].Z = MapProxy->Data[(y + 1) * Size + x + 1];
+		}
+	}
+
+	MarkRenderStateDirty();
+	UpdateBounds();
+}
+
+TSharedPtr<FMapSection, ESPMode::ThreadSafe> UTerrainComponent::GetMapProxy()
+{
+	VerifyMapProxy();
+	return MapProxy;
+}
+
+void UTerrainComponent::VerifyMapProxy()
+{
+	if (!MapProxy.IsValid())
+	{
+		if (Size > 1)
+		{
+			MapProxy = MakeShareable(new FMapSection(Size + 2, Size + 2));
+		}
+	}
+	else
+	{
+		if (MapProxy->X != Size + 2 || MapProxy->Y != Size + 2)
+		{
+			MapProxy = MakeShareable(new FMapSection(Size + 2, Size + 2));
+		}
+	}
 }

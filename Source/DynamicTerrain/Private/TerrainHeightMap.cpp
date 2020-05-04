@@ -33,6 +33,26 @@ float UHeightMap::BPGetHeight(int32 X, int32 Y) const
 
 /// Native Functions ///
 
+void UHeightMap::GetMapSection(FMapSection* Section, FIntPoint Min)
+{
+	// Check to ensure the section is allocated and won't be outside the bounds of the heightmap
+	if (Section->X < 2 || Section->Y < 2 || Section->Data.Num() != Section->X * Section->Y)
+		return;
+	if (Min.X < 0 || Min.Y < 0 || Min.X + Section->X > WidthX || Min.Y + Section->Y > WidthY)
+		return;
+
+	// Fill the map data
+	int32 i = 0;
+	for (int32 y = Min.Y; y < Min.Y + Section->Y; ++y)
+	{
+		for (int32 x = Min.X; x < Min.X + Section->X; ++x)
+		{
+			Section->Data[i] = MapData[y * WidthX + x];
+			++i;
+		}
+	}
+}
+
 float UHeightMap::GetHeight(uint32 X, uint32 Y) const
 {
 	return MapData[Y * WidthX + X];

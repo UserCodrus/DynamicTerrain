@@ -6,6 +6,7 @@
 #include "DynamicMeshBuilder.h"
 
 class UTerrainComponent;
+struct FMapSection;
 
 struct FTerrainTangents
 {
@@ -48,7 +49,8 @@ class FTerrainPositionBuffer : public FTerrainVertexBuffer
 public:
 	FTerrainPositionBuffer();
 
-	void Set();
+	void FillBuffer();
+	void UpdateBuffer(TSharedPtr<FMapSection, ESPMode::ThreadSafe> Map);
 
 	virtual void Bind(FLocalVertexFactory::FDataType& DataType);
 
@@ -71,12 +73,16 @@ public:
 	FTerrainTangentBuffer();
 
 	void Set();
+	void UpdateBuffer(TSharedPtr<FMapSection, ESPMode::ThreadSafe> Map);
 
 	virtual void Bind(FLocalVertexFactory::FDataType& DataType);
 
 	TArray<FTerrainTangents> Data;
 };
 
+// A rendering proxy which stores rendering data for a single terrain component
+// All proxy functions are only callable on the render thread, with the exception of the constructor
+// Use functions in UTerrainComponent to change proxies on the game thread
 class FTerrainComponentSceneProxy : public FPrimitiveSceneProxy
 {
 public:
@@ -109,7 +115,6 @@ public:
 	virtual void GetDynamicMeshElements(const TArray< const FSceneView* >& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, class FMeshElementCollector& Collector) const override;
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override;
 
-	void SizeBuffers();
 	void FillBuffers(int32 X, int32 Y, float Tiling);
 	void BindData();
 
@@ -119,6 +124,9 @@ public:
 	void SetTiling(float Value);
 
 protected:
+	// The render data for the terrain object
+	TSharedPtr<FMapSection, ESPMode::ThreadSafe> MapProxy = nullptr;
+
 	// Vertex position data
 	FTerrainPositionBuffer PositionBuffer;
 	// Vertex tanget and normal vectors
