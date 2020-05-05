@@ -26,7 +26,6 @@ public class DynamicTerrainEditor : ModuleRules
 				"Core",
 				"InputCore",
 				"PropertyEditor",
-				"ProceduralMeshComponent",
 				"DynamicTerrain"
 				// ... add other public dependencies that you statically link with here ...
 			}

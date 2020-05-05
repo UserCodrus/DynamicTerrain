@@ -37,7 +37,6 @@ public class DynamicTerrain : ModuleRules
 				"Engine",
 				"RenderCore",
 				"RHI",
-				"ProceduralMeshComponent",
 			}
 			);
     }

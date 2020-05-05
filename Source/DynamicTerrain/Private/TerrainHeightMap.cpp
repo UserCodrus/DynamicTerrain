@@ -1,8 +1,6 @@
 #include "TerrainHeightMap.h"
 #include "TerrainAlgorithms.h"
 
-#include "ProceduralMeshComponent.h"
-
 #include <chrono>
 
 /// Blueprint Functions ///

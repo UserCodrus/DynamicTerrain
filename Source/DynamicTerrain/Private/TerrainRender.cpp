@@ -131,7 +131,7 @@ FTerrainTangentBuffer::FTerrainTangentBuffer() : FTerrainVertexBuffer(sizeof(FPa
 	// Initializers only
 }
 
-void FTerrainTangentBuffer::Set()
+/*void FTerrainTangentBuffer::Set()
 {
 	if (Size > 0 && ComponentSize > 0)
 	{
@@ -141,7 +141,7 @@ void FTerrainTangentBuffer::Set()
 		FMemory::Memcpy(buffer, Data.GetData(), Data.Num() * Size);
 		RHIUnlockVertexBuffer(VertexBufferRHI);
 	}
-}
+}*/
 
 void FTerrainTangentBuffer::UpdateBuffer(TSharedPtr<FMapSection, ESPMode::ThreadSafe> Map)
 {
@@ -208,7 +208,7 @@ FTerrainComponentSceneProxy::FTerrainComponentSceneProxy(UTerrainComponent* Comp
 	PositionBuffer.Data = Component->Vertices;
 
 	// Fill the vertex buffers
-	for (int32 i = 0; i < Component->VertexBuffer.Num(); ++i)
+	/*for (int32 i = 0; i < Component->VertexBuffer.Num(); ++i)
 	{
 		FTerrainVertex& tv = Component->VertexBuffer[i];
 
@@ -217,7 +217,7 @@ FTerrainComponentSceneProxy::FTerrainComponentSceneProxy(UTerrainComponent* Comp
 		tans.Normal = tv.Normal;
 		tans.Tangent = tv.Tangent;
 		TangentBuffer.Data.Add(tans);
-	}
+	}*/
 
 	// Set the size of the buffers
 	PositionBuffer.ComponentSize = Component->Size;
@@ -352,8 +352,6 @@ void FTerrainComponentSceneProxy::FillBuffers(int32 X, int32 Y, float Tiling)
 {
 	ENQUEUE_RENDER_COMMAND(FComponentFillBuffers)([this, X, Y, Tiling](FRHICommandListImmediate& RHICmdList) {
 		// Load data for all buffers
-		//TangentBuffer.Set();
-		//PositionBuffer.FillBuffer();
 		PositionBuffer.UpdateBuffer(MapProxy);
 		TangentBuffer.UpdateBuffer(MapProxy);
 		UVBuffer.FillBuffer(X, Y, Tiling);

@@ -72,12 +72,10 @@ class FTerrainTangentBuffer : public FTerrainVertexBuffer
 public:
 	FTerrainTangentBuffer();
 
-	void Set();
+	//void Set();
 	void UpdateBuffer(TSharedPtr<FMapSection, ESPMode::ThreadSafe> Map);
 
 	virtual void Bind(FLocalVertexFactory::FDataType& DataType);
-
-	TArray<FTerrainTangents> Data;
 };
 
 // A rendering proxy which stores rendering data for a single terrain component
