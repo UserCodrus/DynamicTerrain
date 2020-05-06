@@ -134,8 +134,14 @@ void UTerrainComponent::Update(TSharedPtr<FMapSection, ESPMode::ThreadSafe> NewS
 		}
 	}
 
-	MarkRenderStateDirty();
+	FTerrainComponentSceneProxy* proxy = (FTerrainComponentSceneProxy*)SceneProxy;
+	ENQUEUE_RENDER_COMMAND(FComponentUpdate)([proxy, NewSection](FRHICommandListImmediate& RHICmdList) {
+		proxy->Update(NewSection);
+		});
+
+	// Update bounds and notify the proxy that bounds have changed
 	UpdateBounds();
+	MarkRenderTransformDirty();
 }
 
 TSharedPtr<FMapSection, ESPMode::ThreadSafe> UTerrainComponent::GetMapProxy()

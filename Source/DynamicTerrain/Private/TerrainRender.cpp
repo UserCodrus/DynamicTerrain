@@ -379,3 +379,9 @@ void FTerrainComponentSceneProxy::SetTiling(float Value)
 {
 
 }
+
+void FTerrainComponentSceneProxy::Update(TSharedPtr<FMapSection, ESPMode::ThreadSafe> SectionProxy)
+{
+	PositionBuffer.UpdateBuffer(SectionProxy);
+	TangentBuffer.UpdateBuffer(SectionProxy);
+}

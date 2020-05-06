@@ -121,6 +121,9 @@ public:
 	// Change the scaling of the UV data
 	void SetTiling(float Value);
 
+	// Update the proxy
+	void Update(TSharedPtr<FMapSection, ESPMode::ThreadSafe> SectionProxy);
+
 protected:
 	// The render data for the terrain object
 	TSharedPtr<FMapSection, ESPMode::ThreadSafe> MapProxy = nullptr;

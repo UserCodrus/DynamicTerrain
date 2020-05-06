@@ -156,8 +156,6 @@ void FDynamicTerrainMode::Enter()
 
 	ModeUpdate();
 	ToolUpdate();
-
-	GEditor->SelectNone(false, false);
 }
 
 void FDynamicTerrainMode::Exit()
