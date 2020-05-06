@@ -34,13 +34,6 @@ void FTerrainVertexBuffer::ReleaseRHI()
 	FVertexBuffer::ReleaseRHI();
 }
 
-/*void FTerrainVertexBuffer::Reset(uint32 NewSize)
-{
-	ComponentSize = NewSize;
-	ReleaseResource();
-	InitResource();
-}*/
-
 FTerrainPositionBuffer::FTerrainPositionBuffer() : FTerrainVertexBuffer(sizeof(FVector), sizeof(float), PF_R32_FLOAT)
 {
 	// Initializers only
@@ -74,7 +67,7 @@ void FTerrainPositionBuffer::UpdateBuffer(TSharedPtr<FMapSection, ESPMode::Threa
 		{
 			for (uint32 x = 0; x < ComponentSize; ++x)
 			{
-				*buffer = FVector(x, y, Map->Data[y * Map->X + x]);
+				*buffer = FVector(x, y, Map->Data[(y + 1) * Map->X + x + 1]);
 				++buffer;
 			}
 		}
@@ -130,18 +123,6 @@ FTerrainTangentBuffer::FTerrainTangentBuffer() : FTerrainVertexBuffer(sizeof(FPa
 {
 	// Initializers only
 }
-
-/*void FTerrainTangentBuffer::Set()
-{
-	if (Size > 0 && ComponentSize > 0)
-	{
-		check(VertexBufferRHI.IsValid());
-
-		void* buffer = RHILockVertexBuffer(VertexBufferRHI, 0, Data.Num() * Size, RLM_WriteOnly);
-		FMemory::Memcpy(buffer, Data.GetData(), Data.Num() * Size);
-		RHIUnlockVertexBuffer(VertexBufferRHI);
-	}
-}*/
 
 void FTerrainTangentBuffer::UpdateBuffer(TSharedPtr<FMapSection, ESPMode::ThreadSafe> Map)
 {
@@ -199,25 +180,11 @@ void FTerrainTangentBuffer::Bind(FLocalVertexFactory::FDataType& DataType)
 FTerrainComponentSceneProxy::FTerrainComponentSceneProxy(UTerrainComponent* Component) : FPrimitiveSceneProxy(Component), VertexFactory(GetScene().GetFeatureLevel(), "FTerrainComponentSceneProxy"), MaterialRelevance(Component->GetMaterialRelevance(GetScene().GetFeatureLevel()))
 {
 	// Get the map proxy data for this component
-	//FTerrainProxy* terrain_proxy = Component->TerrainProxy.Get();
-	//MapProxy = terrain_proxy->SectionProxies[Component->YOffset * terrain_proxy->XWidth + Component->XOffset];
 	MapProxy = Component->GetMapProxy();
 
 	// Fill the buffers
 	IndexBuffer.Indices = Component->IndexBuffer;
 	PositionBuffer.Data = Component->Vertices;
-
-	// Fill the vertex buffers
-	/*for (int32 i = 0; i < Component->VertexBuffer.Num(); ++i)
-	{
-		FTerrainVertex& tv = Component->VertexBuffer[i];
-
-		//PositionBuffer.Data.Add(tv.Position);
-		FTerrainTangents tans;
-		tans.Normal = tv.Normal;
-		tans.Tangent = tv.Tangent;
-		TangentBuffer.Data.Add(tans);
-	}*/
 
 	// Set the size of the buffers
 	PositionBuffer.ComponentSize = Component->Size;

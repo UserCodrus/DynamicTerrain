@@ -9,6 +9,8 @@
 #include "Materials/Material.h"
 #include "Engine/CollisionProfile.h"
 
+//DECLARE_CYCLE_STAT(TEXT("Dynamic Terrain - Rebuild Collision"), STAT_DynamicTerrain_RebuildCollision, STATGROUP_DynamicTerrain)
+
 /// Mesh Component Interface ///
 
 UTerrainComponent::UTerrainComponent(const FObjectInitializer& ObjectInitializer)
@@ -35,9 +37,39 @@ FPrimitiveSceneProxy* UTerrainComponent::CreateSceneProxy()
 	return proxy;
 }
 
+UBodySetup* UTerrainComponent::GetBodySetup()
+{
+	if (BodySetup == nullptr)
+	{
+		BodySetup = CreateBodySetup();
+	}
+	return BodySetup;
+}
+
 int32 UTerrainComponent::GetNumMaterials() const
 {
 	return 1;
+}
+
+bool UTerrainComponent::GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData)
+{
+	// Copy vertex and triangle data
+	CollisionData->Vertices = Vertices;
+	int32 num_triangles = IndexBuffer.Num() / 3;
+	for (int32 i = 0; i < num_triangles; ++i)
+	{
+		FTriIndices tris;
+		tris.v0 = IndexBuffer[i * 3];
+		tris.v1 = IndexBuffer[i * 3 + 1];
+		tris.v2 = IndexBuffer[i * 3 + 2];
+		CollisionData->Indices.Add(tris);
+	}
+
+	CollisionData->bFlipNormals = true;
+	CollisionData->bDeformableMesh = true;
+	CollisionData->bFastCook = true;
+
+	return true;
 }
 
 FBoxSphereBounds UTerrainComponent::CalcBounds(const FTransform& LocalToWorld) const
@@ -67,6 +99,7 @@ void UTerrainComponent::Initialize(ATerrain* Terrain, int32 X, int32 Y)
 	SetSize(Terrain->GetComponentSize());
 
 	MapProxy = Terrain->GetProxy()->SectionProxies[Y * Terrain->GetXWidth() + X];
+	UpdateCollision();
 }
 
 void UTerrainComponent::CreateMeshData()
@@ -130,10 +163,11 @@ void UTerrainComponent::Update(TSharedPtr<FMapSection, ESPMode::ThreadSafe> NewS
 	{
 		for (uint32 x = 0; x < Size; ++x)
 		{
-			Vertices[y * Size + x].Z = MapProxy->Data[(y + 1) * Size + x + 1];
+			Vertices[y * Size + x].Z = MapProxy->Data[(y + 1) * NewSection->X + x + 1];
 		}
 	}
 
+	// Update the scene proxy
 	FTerrainComponentSceneProxy* proxy = (FTerrainComponentSceneProxy*)SceneProxy;
 	ENQUEUE_RENDER_COMMAND(FComponentUpdate)([proxy, NewSection](FRHICommandListImmediate& RHICmdList) {
 		proxy->Update(NewSection);
@@ -142,6 +176,36 @@ void UTerrainComponent::Update(TSharedPtr<FMapSection, ESPMode::ThreadSafe> NewS
 	// Update bounds and notify the proxy that bounds have changed
 	UpdateBounds();
 	MarkRenderTransformDirty();
+	UpdateCollision();
+}
+
+void UTerrainComponent::UpdateCollision()
+{
+	//SCOPE_CYCLE_COUNTER(STAT_DynamicTerrain_RebuildCollision)
+
+	// Create a new body setup if needed
+	GetBodySetup();
+
+	// Change GUID for new collision data
+	BodySetup->BodySetupGuid = FGuid::NewGuid();
+
+	// Cook collision data
+	BodySetup->bHasCookedCollisionData = true;
+	BodySetup->InvalidatePhysicsData();
+	BodySetup->CreatePhysicsMeshes();
+	RecreatePhysicsState();
+}
+
+UBodySetup* UTerrainComponent::CreateBodySetup()
+{
+	UBodySetup* newbody = NewObject<UBodySetup>(this, NAME_None, IsTemplate() ? RF_Public : RF_NoFlags);
+	newbody->BodySetupGuid = FGuid::NewGuid();
+
+	newbody->bGenerateMirroredCollision = false;
+	newbody->bDoubleSidedGeometry = true;
+	newbody->CollisionTraceFlag = CTF_UseComplexAsSimple;
+
+	return newbody;
 }
 
 TSharedPtr<FMapSection, ESPMode::ThreadSafe> UTerrainComponent::GetMapProxy()

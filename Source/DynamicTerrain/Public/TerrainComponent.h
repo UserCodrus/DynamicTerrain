@@ -4,13 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "Components/MeshComponent.h"
+#include "Interfaces/Interface_CollisionDataProvider.h"
 
 #include "TerrainComponent.generated.h"
 
 class ATerrain;
 
 UCLASS(hidecategories = (Object, LOD, Physics, Collision), editinlinenew, meta = (BlueprintSpawnableComponent), ClassGroup = Rendering)
-class DYNAMICTERRAIN_API UTerrainComponent : public UMeshComponent
+class DYNAMICTERRAIN_API UTerrainComponent : public UMeshComponent, public IInterface_CollisionDataProvider
 {
 	GENERATED_BODY()
 
@@ -20,7 +21,12 @@ public:
 	UTerrainComponent(const FObjectInitializer& ObjectInitializer);
 
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
+	virtual UBodySetup* GetBodySetup() override;
 	virtual int32 GetNumMaterials() const override;
+
+	virtual bool GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData) override;
+	virtual bool ContainsPhysicsTriMeshData(bool InUseAllTriData) const override { return true; }
+	virtual bool WantsNegXTriMesh() override { return false; }
 
 private:
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
@@ -40,6 +46,11 @@ public:
 
 	// Update rendering data from a heightmap section
 	void Update(TSharedPtr<FMapSection, ESPMode::ThreadSafe> NewSection);
+	// Update collision data
+	void UpdateCollision();
+
+	// Create a collision body
+	UBodySetup* CreateBodySetup();
 
 	// Get the map data for this section
 	TSharedPtr<FMapSection, ESPMode::ThreadSafe> GetMapProxy();
@@ -67,6 +78,10 @@ private:
 	// The UV Tiling of the component
 	UPROPERTY(VisibleAnywhere)
 		float Tiling;
+
+	// The collision body for the object
+	UPROPERTY(Instanced)
+		UBodySetup* BodySetup;
 
 	// The render data for the terrain component
 	TSharedPtr<FMapSection, ESPMode::ThreadSafe> MapProxy;
