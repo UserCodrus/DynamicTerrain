@@ -158,7 +158,7 @@ void UTerrainComponent::Update(TSharedPtr<FMapSection, ESPMode::ThreadSafe> NewS
 {
 	MapProxy = NewSection;
 
-	// Update collision vertex cache
+	// Update collision data and bounds
 	for (uint32 y = 0; y < Size; ++y)
 	{
 		for (uint32 x = 0; x < Size; ++x)
@@ -166,17 +166,15 @@ void UTerrainComponent::Update(TSharedPtr<FMapSection, ESPMode::ThreadSafe> NewS
 			Vertices[y * Size + x].Z = MapProxy->Data[(y + 1) * NewSection->X + x + 1];
 		}
 	}
+	BodyInstance.UpdateTriMeshVertices(Vertices);
+	UpdateBounds();
 
 	// Update the scene proxy
 	FTerrainComponentSceneProxy* proxy = (FTerrainComponentSceneProxy*)SceneProxy;
 	ENQUEUE_RENDER_COMMAND(FComponentUpdate)([proxy, NewSection](FRHICommandListImmediate& RHICmdList) {
 		proxy->Update(NewSection);
 		});
-
-	// Update bounds and notify the proxy that bounds have changed
-	UpdateBounds();
 	MarkRenderTransformDirty();
-	UpdateCollision();
 }
 
 void UTerrainComponent::UpdateCollision()
