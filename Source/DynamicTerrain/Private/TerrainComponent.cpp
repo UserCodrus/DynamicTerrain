@@ -2,6 +2,7 @@
 
 #include "Terrain.h"
 #include "TerrainRender.h"
+#include "TerrainStat.h"
 
 #include "Engine.h"
 #include "PrimitiveSceneProxy.h"
@@ -9,7 +10,7 @@
 #include "Materials/Material.h"
 #include "Engine/CollisionProfile.h"
 
-//DECLARE_CYCLE_STAT(TEXT("Dynamic Terrain - Rebuild Collision"), STAT_DynamicTerrain_RebuildCollision, STATGROUP_DynamicTerrain)
+DECLARE_CYCLE_STAT(TEXT("Dynamic Terrain - Rebuild Collision"), STAT_DynamicTerrain_RebuildCollision, STATGROUP_DynamicTerrain)
 
 /// Mesh Component Interface ///
 
@@ -179,7 +180,7 @@ void UTerrainComponent::Update(TSharedPtr<FMapSection, ESPMode::ThreadSafe> NewS
 
 void UTerrainComponent::UpdateCollision()
 {
-	//SCOPE_CYCLE_COUNTER(STAT_DynamicTerrain_RebuildCollision)
+	SCOPE_CYCLE_COUNTER(STAT_DynamicTerrain_RebuildCollision)
 
 	// Create a new body setup if needed
 	GetBodySetup();
