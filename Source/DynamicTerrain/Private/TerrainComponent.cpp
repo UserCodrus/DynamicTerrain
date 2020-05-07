@@ -96,6 +96,7 @@ void UTerrainComponent::Initialize(ATerrain* Terrain, int32 X, int32 Y)
 {
 	XOffset = X;
 	YOffset = Y;
+	AsyncCooking = Terrain->GetAsyncCookingEnabled();
 
 	SetSize(Terrain->GetComponentSize());
 
@@ -180,19 +181,69 @@ void UTerrainComponent::Update(TSharedPtr<FMapSection, ESPMode::ThreadSafe> NewS
 
 void UTerrainComponent::UpdateCollision()
 {
-	SCOPE_CYCLE_COUNTER(STAT_DynamicTerrain_RebuildCollision)
+	SCOPE_CYCLE_COUNTER(STAT_DynamicTerrain_RebuildCollision);
 
-	// Create a new body setup if needed
-	GetBodySetup();
+	UWorld* world = GetWorld();
+	bool async = world->IsGameWorld() && AsyncCooking;
 
-	// Change GUID for new collision data
-	BodySetup->BodySetupGuid = FGuid::NewGuid();
+	if (async)
+	{
+		// Abort previous cooks
+		for (UBodySetup* body : BodySetupQueue)
+		{
+			body->AbortPhysicsMeshAsyncCreation();
+		}
 
-	// Cook collision data
-	BodySetup->bHasCookedCollisionData = true;
-	BodySetup->InvalidatePhysicsData();
-	BodySetup->CreatePhysicsMeshes();
-	RecreatePhysicsState();
+		// Start cooking a new body
+		BodySetupQueue.Add(CreateBodySetup());
+		BodySetupQueue.Last()->CreatePhysicsMeshesAsync(FOnAsyncPhysicsCookFinished::CreateUObject(this, &UTerrainComponent::FinishCollision, BodySetupQueue.Last()));
+	}
+	else
+	{
+		// Create a new body setup and clean out the async queue
+		BodySetupQueue.Empty();
+		GetBodySetup();
+
+		// Change GUID for new collision data
+		BodySetup->BodySetupGuid = FGuid::NewGuid();
+
+		// Cook collision data
+		BodySetup->bHasCookedCollisionData = true;
+		BodySetup->InvalidatePhysicsData();
+		BodySetup->CreatePhysicsMeshes();
+		RecreatePhysicsState();
+	}
+}
+
+void UTerrainComponent::FinishCollision(bool Success, UBodySetup* NewBodySetup)
+{
+	// Create a new queue for async cooking
+	TArray<UBodySetup*> new_queue;
+	new_queue.Reserve(BodySetupQueue.Num());
+
+	// Find the body setup
+	int32 location;
+	if (BodySetupQueue.Find(NewBodySetup, location))
+	{
+		if (Success)
+		{
+			// Use the new body setup
+			BodySetup = NewBodySetup;
+			RecreatePhysicsState();
+
+			// Remove any earlier requests
+			for (int32 i = location + 1; i < BodySetupQueue.Num(); ++i)
+			{
+				new_queue.Add(BodySetupQueue[i]);
+			}
+			BodySetupQueue = new_queue;
+		}
+		else
+		{
+			// Remove failed bake
+			BodySetupQueue.RemoveAt(location);
+		}
+	}
 }
 
 UBodySetup* UTerrainComponent::CreateBodySetup()

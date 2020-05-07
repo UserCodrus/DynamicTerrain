@@ -46,18 +46,24 @@ public:
 
 	// Update rendering data from a heightmap section
 	void Update(TSharedPtr<FMapSection, ESPMode::ThreadSafe> NewSection);
-	// Update collision data
-	void UpdateCollision();
-
-	// Create a collision body
-	UBodySetup* CreateBodySetup();
 
 	// Get the map data for this section
 	TSharedPtr<FMapSection, ESPMode::ThreadSafe> GetMapProxy();
 
+	// Set to true to cook collision off the main thread
+	UPROPERTY()
+		bool AsyncCooking;
+
 private:
 	// Verify that the map proxy exists
 	void VerifyMapProxy();
+
+	// Update collision data
+	void UpdateCollision();
+	// Finish asynchronous collision cooking
+	void FinishCollision(bool Success, UBodySetup* NewBodySetup);
+	// Create a collision body
+	UBodySetup* CreateBodySetup();
 
 	// The mesh indices
 	UPROPERTY(VisibleAnywhere)
@@ -82,6 +88,9 @@ private:
 	// The collision body for the object
 	UPROPERTY(Instanced)
 		UBodySetup* BodySetup;
+	// Queue of body setups that are being cooked asynchronously
+	UPROPERTY(Transient)
+		TArray<UBodySetup*> BodySetupQueue;
 
 	// The render data for the terrain component
 	TSharedPtr<FMapSection, ESPMode::ThreadSafe> MapProxy;
