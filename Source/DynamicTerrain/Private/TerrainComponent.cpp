@@ -175,10 +175,7 @@ void UTerrainComponent::UpdateCollision()
 {
 	SCOPE_CYCLE_COUNTER(STAT_DynamicTerrain_RebuildCollision);
 
-	UWorld* world = GetWorld();
-	bool async = world->IsGameWorld() && AsyncCooking;
-
-	if (async)
+	if (AsyncCooking)
 	{
 		// Abort previous cooks
 		for (UBodySetup* body : BodySetupQueue)
