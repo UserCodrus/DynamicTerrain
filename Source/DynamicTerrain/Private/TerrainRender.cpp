@@ -192,11 +192,11 @@ FTerrainComponentSceneProxy::FTerrainComponentSceneProxy(UTerrainComponent* Comp
 	TangentBuffer.ComponentSize = Component->Size;
 
 	// Initialize render resources
-	BeginInitResource(&PositionBuffer);
-	BeginInitResource(&UVBuffer);
-	BeginInitResource(&TangentBuffer);
+	//BeginInitResource(&PositionBuffer);
+	//BeginInitResource(&UVBuffer);
+	//BeginInitResource(&TangentBuffer);
 
-	BeginInitResource(&IndexBuffer);
+	//BeginInitResource(&IndexBuffer);
 
 	FillBuffers(Component->XOffset * (Component->Size - 1), Component->YOffset * (Component->Size - 1), Component->Tiling);
 	BindData();
@@ -266,7 +266,6 @@ void FTerrainComponentSceneProxy::GetDynamicMeshElements(const TArray< const FSc
 			element.NumPrimitives = IndexBuffer.Indices.Num() / 3;
 			element.MinVertexIndex = 0;
 			element.MaxVertexIndex = PositionBuffer.Data.Num();
-			//element.MaxVertexIndex = VertexBuffers.PositionVertexBuffer.GetNumVertices() - 1;
 
 			// Load uniform buffers
 			bool bHasPrecomputedVolumetricLightmap;
@@ -318,6 +317,12 @@ FPrimitiveViewRelevance FTerrainComponentSceneProxy::GetViewRelevance(const FSce
 void FTerrainComponentSceneProxy::FillBuffers(int32 X, int32 Y, float Tiling)
 {
 	ENQUEUE_RENDER_COMMAND(FComponentFillBuffers)([this, X, Y, Tiling](FRHICommandListImmediate& RHICmdList) {
+		// Initialize buffers
+		PositionBuffer.InitResource();
+		UVBuffer.InitResource();
+		TangentBuffer.InitResource();
+		IndexBuffer.InitResource();
+
 		// Load data for all buffers
 		PositionBuffer.UpdateBuffer(MapProxy);
 		TangentBuffer.UpdateBuffer(MapProxy);
@@ -349,6 +354,7 @@ void FTerrainComponentSceneProxy::SetTiling(float Value)
 
 void FTerrainComponentSceneProxy::Update(TSharedPtr<FMapSection, ESPMode::ThreadSafe> SectionProxy)
 {
-	PositionBuffer.UpdateBuffer(SectionProxy);
-	TangentBuffer.UpdateBuffer(SectionProxy);
+	MapProxy = SectionProxy;
+	PositionBuffer.UpdateBuffer(MapProxy);
+	TangentBuffer.UpdateBuffer(MapProxy);
 }

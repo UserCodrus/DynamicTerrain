@@ -35,20 +35,19 @@ private:
 
 public:
 	// Initialize the component
-	void Initialize(ATerrain* Terrain, int32 X, int32 Y);
+	void Initialize(ATerrain* Terrain, TSharedPtr<FMapSection, ESPMode::ThreadSafe> Proxy, int32 X, int32 Y);
 	// Initialize mesh data
 	void CreateMeshData();
 
 	// Set the size of the component
 	void SetSize(uint32 NewSize);
-	// Generate vertices for the component from a terrain
-	void GenerateVertices(ATerrain* Terrain);
-
 	// Update rendering data from a heightmap section
 	void Update(TSharedPtr<FMapSection, ESPMode::ThreadSafe> NewSection);
 
 	// Get the map data for this section
 	TSharedPtr<FMapSection, ESPMode::ThreadSafe> GetMapProxy();
+	// Set the map data for this section
+	void SetMapProxy(TSharedPtr<FMapSection, ESPMode::ThreadSafe> Proxy);
 
 	// Set to true to cook collision off the main thread
 	UPROPERTY()

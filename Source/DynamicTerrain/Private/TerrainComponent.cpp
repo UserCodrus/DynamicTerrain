@@ -92,16 +92,15 @@ FBoxSphereBounds UTerrainComponent::CalcBounds(const FTransform& LocalToWorld) c
 
 /// Terrain Interface ///
 
-void UTerrainComponent::Initialize(ATerrain* Terrain, int32 X, int32 Y)
+void UTerrainComponent::Initialize(ATerrain* Terrain, TSharedPtr<FMapSection, ESPMode::ThreadSafe> Proxy, int32 X, int32 Y)
 {
 	XOffset = X;
 	YOffset = Y;
 	AsyncCooking = Terrain->GetAsyncCookingEnabled();
+	MapProxy = Proxy;
 
+	SetMaterial(0, Terrain->GetMaterials());
 	SetSize(Terrain->GetComponentSize());
-
-	MapProxy = Terrain->GetProxy()->SectionProxies[Y * Terrain->GetXWidth() + X];
-	UpdateCollision();
 }
 
 void UTerrainComponent::CreateMeshData()
@@ -144,16 +143,9 @@ void UTerrainComponent::SetSize(uint32 NewSize)
 	{
 		Size = NewSize;
 		CreateMeshData();
+		UpdateCollision();
 		MarkRenderStateDirty();
 	}
-}
-
-void UTerrainComponent::GenerateVertices(ATerrain* Terrain)
-{
-	//Terrain->GenerateMeshSection(XOffset, YOffset, VertexBuffer, IndexBuffer);
-	SetMaterial(0, Terrain->GetMaterials());
-	MarkRenderStateDirty();
-	UpdateBounds();
 }
 
 void UTerrainComponent::Update(TSharedPtr<FMapSection, ESPMode::ThreadSafe> NewSection)
@@ -262,6 +254,12 @@ TSharedPtr<FMapSection, ESPMode::ThreadSafe> UTerrainComponent::GetMapProxy()
 {
 	VerifyMapProxy();
 	return MapProxy;
+}
+
+void UTerrainComponent::SetMapProxy(TSharedPtr<FMapSection, ESPMode::ThreadSafe> Proxy)
+{
+	MapProxy = Proxy;
+	MarkRenderStateDirty();
 }
 
 void UTerrainComponent::VerifyMapProxy()
