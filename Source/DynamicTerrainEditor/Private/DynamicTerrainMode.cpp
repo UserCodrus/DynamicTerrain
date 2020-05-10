@@ -192,6 +192,13 @@ void FDynamicTerrainMode::Tick(FEditorViewportClient* ViewportClient, float Delt
 
 	if (CurrentMode->ModeID == TerrainModeID::SCULPT)
 	{
+		ATerrain* terrain = Cast<ATerrain>(hit.Actor);
+		if (terrain != nullptr && terrain != SelectedTerrain)
+		{
+			// Select a terrain when the mouse hovers over it
+			SelectTerrain(terrain);
+		}
+
 		if (SelectedTerrain != nullptr)
 		{
 			FTerrainTool* tool = Tools.GetTool();
@@ -210,7 +217,7 @@ void FDynamicTerrainMode::Tick(FEditorViewportClient* ViewportClient, float Delt
 			}
 		}
 	}
-	else if (CurrentMode->ModeID == TerrainModeID::MANAGE)
+	else if (CurrentMode->ModeID == TerrainModeID::MANAGE || CurrentMode->ModeID == TerrainModeID::GENERATE)
 	{
 		// Select a terrain when clicked in manage mode
 		if (MouseClick)
@@ -456,7 +463,6 @@ void FDynamicTerrainMode::ModeUpdate()
 		Settings->WidthX = SelectedTerrain->GetXWidth();
 		Settings->WidthY = SelectedTerrain->GetYWidth();
 		Settings->UVTiling = SelectedTerrain->GetTiling();
-		Settings->Border = SelectedTerrain->GetBorderEnabled();
 	}
 	else
 	{
@@ -465,7 +471,6 @@ void FDynamicTerrainMode::ModeUpdate()
 		Settings->WidthX = 3;
 		Settings->WidthY = 3;
 		Settings->UVTiling = 1.0f;
-		Settings->Border = true;
 	}
 
 	((FDynamicTerrainModeToolkit*)GetToolkit().Get())->RefreshDetails();
@@ -476,7 +481,6 @@ void FDynamicTerrainMode::ResizeTerrain()
 	if (SelectedTerrain != nullptr)
 	{
 		SelectedTerrain->SetTiling(Settings->UVTiling);
-		SelectedTerrain->EnableBorder(Settings->Border);
 		SelectedTerrain->Resize(Settings->ComponentSize, Settings->WidthX, Settings->WidthY);
 	}
 }
@@ -490,7 +494,6 @@ void FDynamicTerrainMode::CreateTerrain()
 
 	// Resize the new terrain
 	new_terrain->SetTiling(Settings->UVTiling);
-	new_terrain->EnableBorder(Settings->Border);
 	new_terrain->Resize(Settings->ComponentSize, Settings->WidthX, Settings->WidthY);
 
 	SelectTerrain(new_terrain);

@@ -72,8 +72,6 @@ public:
 		int32 WidthY = 3;
 	UPROPERTY(EditAnywhere, Category = "Terrain Settings")
 		float UVTiling = 1.0f;
-	UPROPERTY(EditAnywhere, Category = "Terrain Settings")
-		bool Border = true;
 
 	UPROPERTY(EditAnywhere, Category = "Brush Settings")
 		float Size = 10.0f;
