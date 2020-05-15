@@ -3,7 +3,8 @@
 #include "CoreMinimal.h"
 #include "Terrain.h"
 
-enum class TerrainBrushID
+UENUM(BlueprintType)
+enum class TerrainBrushID : uint8
 {
 	LINEAR,
 	SMOOTH,
@@ -12,7 +13,8 @@ enum class TerrainBrushID
 	NUM
 };
 
-enum class TerrainToolID
+UENUM(BlueprintType)
+enum class TerrainToolID : uint8
 {
 	SCULPT,
 	SMOOTH,

@@ -7,7 +7,7 @@
 
 #include "TerrainBrushDecal.generated.h"
 
-UCLASS()
+UCLASS(BlueprintType, Blueprintable, ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class DYNAMICTERRAIN_API UBrushDecal : public UDecalComponent
 {
 	GENERATED_BODY()

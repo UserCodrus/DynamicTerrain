@@ -13,7 +13,7 @@ const FEditorModeID FDynamicTerrainMode::DynamicTerrainModeID = TEXT("DynamicTer
 ABrushProxy::ABrushProxy()
 {
 	// Create the decal
-	Decal = CreateDefaultSubobject<UBrushDecal>(TEXT("TerrainBrushDecal"));
+	Decal = CreateDefaultSubobject<UBrushDecal>(TEXT("TerrainEditorBrushDecal"));
 	Decal->SetVisibility(false);
 
 	SetActorLabel("BrushProxy");
@@ -123,7 +123,6 @@ void FDynamicTerrainMode::Enter()
 
 	// Create the brush display
 	FActorSpawnParameters spawn_params;
-	spawn_params.Name = TEXT("BrushProxy");
 	spawn_params.ObjectFlags = EObjectFlags::RF_Transient;
 	Brush = GetWorld()->SpawnActor<ABrushProxy>(spawn_params);
 

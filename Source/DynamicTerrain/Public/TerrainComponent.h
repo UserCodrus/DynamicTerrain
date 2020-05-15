@@ -10,7 +10,7 @@
 
 class ATerrain;
 
-UCLASS(hidecategories = (Object, LOD, Physics, Collision), editinlinenew, meta = (BlueprintSpawnableComponent), ClassGroup = Rendering)
+UCLASS(HideCategories = (Object, LOD, Physics), EditInlineNew, ClassGroup = Rendering)
 class DYNAMICTERRAIN_API UTerrainComponent : public UMeshComponent, public IInterface_CollisionDataProvider
 {
 	GENERATED_BODY()
