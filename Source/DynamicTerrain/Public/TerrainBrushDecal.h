@@ -15,7 +15,7 @@ class DYNAMICTERRAIN_API UBrushDecal : public UDecalComponent
 public:
 	UBrushDecal();
 
-	virtual void OnComponentCreated() override;
+	virtual void BeginPlay() override;
 
 	// Change the size of the cursor
 	void Resize(FTerrainTool* Tool, ATerrain* Terrain);
@@ -27,6 +27,6 @@ protected:
 	UPROPERTY(Transient)
 		UMaterial* BrushMaterial;
 	// The material instance for the brush material
-	UPROPERTY()
+	UPROPERTY(Transient)
 		UMaterialInstanceDynamic* BrushInstance;
 };

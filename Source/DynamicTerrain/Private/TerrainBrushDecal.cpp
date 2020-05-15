@@ -17,9 +17,9 @@ UBrushDecal::UBrushDecal()
 	}
 }
 
-void UBrushDecal::OnComponentCreated()
+void UBrushDecal::BeginPlay()
 {
-	// Set the material for the decal
+	// Create a material instance for the decal
 	if (DecalMaterial == nullptr)
 	{
 		SetDecalMaterial(BrushMaterial);
