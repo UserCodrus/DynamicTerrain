@@ -47,12 +47,13 @@ void UTerrainToolComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 					if (hit.IsValidBlockingHit())
 					{
 						// Move the brush
-						BrushDecal->SetVisibility(true);
 						BrushDecal->SetRelativeLocation(hit.Location);
 
 						ATerrain* terrain = Cast<ATerrain>(hit.GetActor());
 						if (terrain != nullptr)
 						{
+							BrushDecal->SetVisibility(true);
+							BrushDecal->ChangeColor(BrushColor);
 							BrushDecal->Resize(TerrainTools.GetTool(), terrain);
 							if (ToolActive)
 							{
@@ -61,10 +62,18 @@ void UTerrainToolComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 								TerrainTools.GetTool()->Apply(terrain, hit.Location, DeltaTime);
 							}
 						}
+						else
+						{
+							// Hide the brush when it isn't over terrain
+							BrushDecal->SetVisibility(!HideInvalidBrush);
+							BrushDecal->ChangeColor(BrushInvalidColor);
+						}
 					}
 					else
 					{
-						BrushDecal->SetVisibility(false);
+						// Hide the brush when it's out of range
+						BrushDecal->SetVisibility(!HideInvalidBrush);
+						BrushDecal->ChangeColor(BrushInvalidColor);
 					}
 				}
 			}
@@ -159,4 +168,9 @@ FText UTerrainToolComponent::GetToolName()
 FText UTerrainToolComponent::GetBrushName()
 {
 	return TerrainTools.GetBrush()->GetName();
+}
+
+UBrushDecal* UTerrainToolComponent::GetBrushDecal()
+{
+	return BrushDecal;
 }

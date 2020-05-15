@@ -20,7 +20,10 @@ UBrushDecal::UBrushDecal()
 void UBrushDecal::OnComponentCreated()
 {
 	// Set the material for the decal
-	SetDecalMaterial(BrushMaterial);
+	if (DecalMaterial == nullptr)
+	{
+		SetDecalMaterial(BrushMaterial);
+	}
 	BrushInstance = CreateDynamicMaterialInstance();
 }
 
@@ -30,7 +33,7 @@ void UBrushDecal::Resize(FTerrainTool* Tool, ATerrain* Terrain)
 	float Radius = Terrain->GetActorScale3D().X * Tool->Size;
 	float Falloff = Terrain->GetActorScale3D().X * Tool->Falloff;
 
-	float width = Radius + Falloff + 100.0f;
+	float width = Radius + Falloff + 200.0f;
 	DecalSize = FVector(width, width, Terrain->GetActorScale3D().Z * 200.0f);
 
 	BrushInstance->SetScalarParameterValue(TEXT("Radius"), Radius);

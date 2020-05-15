@@ -23,10 +23,10 @@ public:
 	void ChangeColor(FColor Color);
 
 protected:
-	// The material used for the tool brushes
+	// The default material used for the tool brushes
 	UPROPERTY(Transient)
-		UMaterial* BrushMaterial = nullptr;
+		UMaterial* BrushMaterial;
 	// The material instance for the brush material
-	UPROPERTY(VisibleAnywhere)
-		UMaterialInstanceDynamic* BrushInstance = nullptr;
+	UPROPERTY()
+		UMaterialInstanceDynamic* BrushInstance;
 };
