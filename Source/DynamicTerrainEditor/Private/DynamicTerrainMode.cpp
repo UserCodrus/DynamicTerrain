@@ -71,12 +71,12 @@ FDynamicTerrainMode::FDynamicTerrainMode()
 		UFunction* funct = UMapGenerator::StaticClass()->FindFunctionByName(fnames[i]);
 		if (funct != nullptr)
 		{
-			for (TFieldIterator<UProperty> it = TFieldIterator<UProperty>(funct); it; ++it)
+			for (TFieldIterator<FProperty> it = TFieldIterator<FProperty>(funct); it; ++it)
 			{
-				UProperty* prop = *it;
+				FProperty* prop = *it;
 
 				// Make sure the property is a numeric type
-				if (UNumericProperty* nprop = Cast<UNumericProperty>(prop))
+				if (FNumericProperty* nprop = CastField<FNumericProperty>(prop))
 				{
 					// Get the name and type of the parameter
 					Generators.Last()->IsFloat.Push(nprop->IsFloatingPoint());
