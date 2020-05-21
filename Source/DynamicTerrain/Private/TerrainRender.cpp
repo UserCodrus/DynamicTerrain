@@ -19,7 +19,7 @@ void FTerrainVertexBuffer::InitRHI()
 		// Create the RHI buffer
 		FRHIResourceCreateInfo info;
 		VertexBufferRHI = RHICreateVertexBuffer(ComponentSize * ComponentSize * Size, StaticFlag | BUF_ShaderResource, info);
-
+		
 		// Create the shader resource view if needed
 		if (RHISupportsManualVertexFetch(GMaxRHIShaderPlatform))
 		{
@@ -265,7 +265,7 @@ void FTerrainComponentSceneProxy::GetDynamicMeshElements(const TArray< const FSc
 			element.FirstIndex = 0;
 			element.NumPrimitives = IndexBuffer.Indices.Num() / 3;
 			element.MinVertexIndex = 0;
-			element.MaxVertexIndex = PositionBuffer.Data.Num();
+			element.MaxVertexIndex = PositionBuffer.Data.Num() - 1;
 
 			// Load uniform buffers
 			bool bHasPrecomputedVolumetricLightmap;
@@ -310,7 +310,7 @@ FPrimitiveViewRelevance FTerrainComponentSceneProxy::GetViewRelevance(const FSce
 
 	Result.bTranslucentSelfShadow = bCastVolumetricTranslucentShadow;
 	MaterialRelevance.SetPrimitiveViewRelevance(Result);
-	Result.bVelocityRelevance = IsMovable() && Result.bOpaqueRelevance && Result.bRenderInMainPass;
+	Result.bVelocityRelevance = IsMovable() && Result.bOpaque && Result.bRenderInMainPass;
 	return Result;
 }
 
