@@ -148,6 +148,11 @@ void UTerrainComponent::SetSize(uint32 NewSize)
 	}
 }
 
+uint32 UTerrainComponent::GetSize()
+{
+	return Size;
+}
+
 void UTerrainComponent::Update(TSharedPtr<FMapSection, ESPMode::ThreadSafe> NewSection)
 {
 	MapProxy = NewSection;

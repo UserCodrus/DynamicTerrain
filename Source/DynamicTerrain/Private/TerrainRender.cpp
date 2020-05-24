@@ -181,15 +181,16 @@ FTerrainComponentSceneProxy::FTerrainComponentSceneProxy(UTerrainComponent* Comp
 {
 	// Get the map proxy data for this component
 	MapProxy = Component->GetMapProxy();
+	Size = Component->GetSize();
 
 	// Fill the buffers
 	IndexBuffer.Indices = Component->IndexBuffer;
-	PositionBuffer.Data = Component->Vertices;
+	//PositionBuffer.Data = Component->Vertices;
 
 	// Set the size of the buffers
-	PositionBuffer.ComponentSize = Component->Size;
-	UVBuffer.ComponentSize = Component->Size;
-	TangentBuffer.ComponentSize = Component->Size;
+	//PositionBuffer.ComponentSize = Component->Size;
+	//UVBuffer.ComponentSize = Component->Size;
+	//TangentBuffer.ComponentSize = Component->Size;
 
 	// Initialize render resources
 	//BeginInitResource(&PositionBuffer);
@@ -198,8 +199,7 @@ FTerrainComponentSceneProxy::FTerrainComponentSceneProxy(UTerrainComponent* Comp
 
 	//BeginInitResource(&IndexBuffer);
 
-	FillBuffers(Component->XOffset * (Component->Size - 1), Component->YOffset * (Component->Size - 1), Component->Tiling);
-	BindData();
+	Initialize(Component->XOffset * (Component->Size - 1), Component->YOffset * (Component->Size - 1), Component->Tiling);
 
 	// Get the material
 	Material = Component->GetMaterial(0);
@@ -211,12 +211,9 @@ FTerrainComponentSceneProxy::FTerrainComponentSceneProxy(UTerrainComponent* Comp
 
 FTerrainComponentSceneProxy::~FTerrainComponentSceneProxy()
 {
-	PositionBuffer.ReleaseResource();
-	UVBuffer.ReleaseResource();
-	TangentBuffer.ReleaseResource();
-
+	VertexBuffers.PositionVertexBuffer.ReleaseResource();
+	VertexBuffers.StaticMeshVertexBuffer.ReleaseResource();
 	IndexBuffer.ReleaseResource();
-
 	VertexFactory.ReleaseResource();
 }
 
@@ -265,7 +262,7 @@ void FTerrainComponentSceneProxy::GetDynamicMeshElements(const TArray< const FSc
 			element.FirstIndex = 0;
 			element.NumPrimitives = IndexBuffer.Indices.Num() / 3;
 			element.MinVertexIndex = 0;
-			element.MaxVertexIndex = PositionBuffer.Data.Num() - 1;
+			element.MaxVertexIndex = VertexBuffers.PositionVertexBuffer.GetNumVertices() - 1;
 
 			// Load uniform buffers
 			bool bHasPrecomputedVolumetricLightmap;
@@ -314,30 +311,27 @@ FPrimitiveViewRelevance FTerrainComponentSceneProxy::GetViewRelevance(const FSce
 	return Result;
 }
 
-void FTerrainComponentSceneProxy::FillBuffers(int32 X, int32 Y, float Tiling)
+void FTerrainComponentSceneProxy::Initialize(int32 X, int32 Y, float Tiling)
 {
 	ENQUEUE_RENDER_COMMAND(FComponentFillBuffers)([this, X, Y, Tiling](FRHICommandListImmediate& RHICmdList) {
 		// Initialize buffers
-		PositionBuffer.InitResource();
-		UVBuffer.InitResource();
-		TangentBuffer.InitResource();
-		IndexBuffer.InitResource();
+		VertexBuffers.PositionVertexBuffer.Init(Size * Size);
+		VertexBuffers.StaticMeshVertexBuffer.Init(Size * Size, 1);
 
 		// Load data for all buffers
-		PositionBuffer.UpdateBuffer(MapProxy);
-		TangentBuffer.UpdateBuffer(MapProxy);
-		UVBuffer.FillBuffer(X, Y, Tiling);
-		});
-}
+		UpdateMapData();
+		UpdateUVData(X, Y, Tiling);
 
-void FTerrainComponentSceneProxy::BindData()
-{
-	ENQUEUE_RENDER_COMMAND(FComponentBindData)([this](FRHICommandListImmediate& RHICmdList) {
-		// Load vertex factory data
+		// Initialize the index buffer
+		IndexBuffer.InitResource();
+
+		// Bind vertex factory data
 		FLocalVertexFactory::FDataType datatype;
-		PositionBuffer.Bind(datatype);
-		TangentBuffer.Bind(datatype);
-		UVBuffer.Bind(datatype);
+		VertexBuffers.PositionVertexBuffer.BindPositionVertexBuffer(&VertexFactory, datatype);
+		VertexBuffers.StaticMeshVertexBuffer.BindTangentVertexBuffer(&VertexFactory, datatype);
+		VertexBuffers.StaticMeshVertexBuffer.BindPackedTexCoordVertexBuffer(&VertexFactory, datatype);
+		VertexBuffers.StaticMeshVertexBuffer.BindLightMapVertexBuffer(&VertexFactory, datatype, 0);
+		FColorVertexBuffer::BindDefaultColorVertexBuffer(&VertexFactory, datatype, FColorVertexBuffer::NullBindStride::ZeroForDefaultBufferBind);
 
 		// Initalize the vertex factory
 		VertexFactory.SetData(datatype);
@@ -347,14 +341,84 @@ void FTerrainComponentSceneProxy::BindData()
 
 /// Proxy Update Functions ///
 
-void FTerrainComponentSceneProxy::SetTiling(float Value)
+void FTerrainComponentSceneProxy::UpdateUVData(int32 XOffset, int32 YOffset, float Tiling)
 {
+	// Fill UV data
+	for (uint32 y = 0; y < Size; ++y)
+	{
+		for (uint32 x = 0; x < Size; ++x)
+		{
+			VertexBuffers.StaticMeshVertexBuffer.SetVertexUV(y * Size + x, 0, FVector2D((XOffset + x)* Tiling, (YOffset + y)* Tiling));
+		}
+	}
 
+	// Update or initialize the UV buffer
+	if (VertexBuffers.StaticMeshVertexBuffer.IsInitialized())
+	{
+		VertexBuffers.StaticMeshVertexBuffer.UpdateRHI();
+	}
+	else
+	{
+		VertexBuffers.StaticMeshVertexBuffer.InitResource();
+	}
 }
 
 void FTerrainComponentSceneProxy::Update(TSharedPtr<FMapSection, ESPMode::ThreadSafe> SectionProxy)
 {
 	MapProxy = SectionProxy;
-	PositionBuffer.UpdateBuffer(MapProxy);
-	TangentBuffer.UpdateBuffer(MapProxy);
+	UpdateMapData();
+}
+
+void FTerrainComponentSceneProxy::UpdateMapData()
+{
+	for (uint32 y = 0; y < Size; ++y)
+	{
+		for (uint32 x = 0; x < Size; ++x)
+		{
+			uint32 i = y * Size + x;
+
+			// Position data
+			VertexBuffers.PositionVertexBuffer.VertexPosition(i) = FVector(x, y, MapProxy->Data[(y + 1) * MapProxy->X + x + 1]);
+
+			// Tangent data
+			int32 map_offset_x = x + 1;
+			int32 map_offset_y = y + 1;
+			float s01 = MapProxy->Data[map_offset_x - 1 + map_offset_y * MapProxy->X];
+			float s21 = MapProxy->Data[map_offset_x + 1 + map_offset_y * MapProxy->X];
+			float s10 = MapProxy->Data[map_offset_x + (map_offset_y - 1) * MapProxy->X];
+			float s12 = MapProxy->Data[map_offset_x + (map_offset_y + 1) * MapProxy->X];
+
+			// Get tangents in the x and y directions
+			FVector vx(2.0f, 0, s21 - s01);
+			FVector vy(0, 2.0f, s10 - s12);
+
+			// Calculate the cross product of the two tangents
+			vx.Normalize();
+			vy.Normalize();
+
+			FVector normal = FVector::CrossProduct(vx, vy);
+			FVector tangent_x = FVector(vx.X, vx.Y, vx.Z);
+			FVector tangent_y = FVector(vy.X, vy.Y, vy.Z);
+
+			VertexBuffers.StaticMeshVertexBuffer.SetVertexTangents(i, tangent_x, tangent_y, normal);
+		}
+	}
+
+	// Update or initialize buffer RHI
+	if (VertexBuffers.PositionVertexBuffer.IsInitialized())
+	{
+		VertexBuffers.PositionVertexBuffer.UpdateRHI();
+	}
+	else
+	{
+		VertexBuffers.PositionVertexBuffer.InitResource();
+	}
+	if (VertexBuffers.StaticMeshVertexBuffer.IsInitialized())
+	{
+		VertexBuffers.StaticMeshVertexBuffer.UpdateRHI();
+	}
+	else
+	{
+		VertexBuffers.StaticMeshVertexBuffer.InitResource();
+	}
 }

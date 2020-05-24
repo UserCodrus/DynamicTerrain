@@ -113,28 +113,32 @@ public:
 	virtual void GetDynamicMeshElements(const TArray< const FSceneView* >& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, class FMeshElementCollector& Collector) const override;
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override;
 
-	void FillBuffers(int32 X, int32 Y, float Tiling);
-	void BindData();
-
 	/// Proxy Update Functions ///
 
-	// Change the scaling of the UV data
-	void SetTiling(float Value);
-
-	// Update the proxy
+	// Update rending data using the provided proxy
 	void Update(TSharedPtr<FMapSection, ESPMode::ThreadSafe> SectionProxy);
 
 protected:
+	// Initialize vertex buffers
+	void Initialize(int32 X, int32 Y, float Tiling);
+	// Update rendering data using the current map proxy data
+	void UpdateMapData();
+	// Update mesh UVs using the provided offsets and tiling
+	void UpdateUVData(int32 XOffset, int32 YOffset, float Tiling);
+
 	// The render data for the terrain object
 	TSharedPtr<FMapSection, ESPMode::ThreadSafe> MapProxy = nullptr;
+	// The size of the component
+	uint32 Size;
 
 	// Vertex position data
-	FTerrainPositionBuffer PositionBuffer;
+	//FTerrainPositionBuffer PositionBuffer;
 	// Vertex tanget and normal vectors
-	FTerrainTangentBuffer TangentBuffer;
+	//FTerrainTangentBuffer TangentBuffer;
 	// Vertex UVs
-	FTerrainUVBuffer UVBuffer;
-
+	//FTerrainUVBuffer UVBuffer;
+	// The vertex buffer for the mesh data
+	FStaticMeshVertexBuffers VertexBuffers;
 	// The triangles used by the component
 	FDynamicMeshIndexBuffer32 IndexBuffer;
 	// The vertex factory for storing vertex data
