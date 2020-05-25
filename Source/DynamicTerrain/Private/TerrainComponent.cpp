@@ -96,6 +96,7 @@ void UTerrainComponent::Initialize(ATerrain* Terrain, TSharedPtr<FMapSection, ES
 {
 	XOffset = X;
 	YOffset = Y;
+	Tiling = Terrain->GetTiling();
 	AsyncCooking = Terrain->GetAsyncCookingEnabled();
 	MapProxy = Proxy;
 
@@ -151,6 +152,19 @@ void UTerrainComponent::SetSize(uint32 NewSize)
 uint32 UTerrainComponent::GetSize()
 {
 	return Size;
+}
+
+void UTerrainComponent::SetTiling(float NewTiling)
+{
+	Tiling = NewTiling;
+	float x = XOffset;
+	float y = YOffset;
+
+	// Update UV data in the proxy
+	FTerrainComponentSceneProxy* proxy = (FTerrainComponentSceneProxy*)SceneProxy;
+	ENQUEUE_RENDER_COMMAND(FComponentUpdate)([proxy, x, y, NewTiling](FRHICommandListImmediate& RHICmdList) {
+		proxy->UpdateUVs(x, y, NewTiling);
+		});
 }
 
 void UTerrainComponent::Update(TSharedPtr<FMapSection, ESPMode::ThreadSafe> NewSection)

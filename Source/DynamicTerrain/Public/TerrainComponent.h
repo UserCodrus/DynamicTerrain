@@ -43,6 +43,8 @@ public:
 	void SetSize(uint32 NewSize);
 	// Get the current component size
 	inline uint32 GetSize();
+	// Set component tiling
+	void SetTiling(float NewTiling);
 	// Update rendering data from a heightmap section
 	void Update(TSharedPtr<FMapSection, ESPMode::ThreadSafe> NewSection);
 
