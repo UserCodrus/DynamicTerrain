@@ -116,7 +116,9 @@ public:
 	/// Proxy Update Functions ///
 
 	// Update rending data using the provided proxy
-	void Update(TSharedPtr<FMapSection, ESPMode::ThreadSafe> SectionProxy);
+	void UpdateMap(TSharedPtr<FMapSection, ESPMode::ThreadSafe> SectionProxy);
+	// Update uv tiling
+	void UpdateUVs(int32 XOffset, int32 YOffset, float Tiling);
 
 protected:
 	// Initialize vertex buffers

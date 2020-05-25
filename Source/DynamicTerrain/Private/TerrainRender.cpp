@@ -322,8 +322,10 @@ void FTerrainComponentSceneProxy::Initialize(int32 X, int32 Y, float Tiling)
 		UpdateMapData();
 		UpdateUVData(X, Y, Tiling);
 
-		// Initialize the index buffer
+		// Initialize the buffers
 		IndexBuffer.InitResource();
+		VertexBuffers.PositionVertexBuffer.InitResource();
+		VertexBuffers.StaticMeshVertexBuffer.InitResource();
 
 		// Bind vertex factory data
 		FLocalVertexFactory::FDataType datatype;
@@ -351,22 +353,42 @@ void FTerrainComponentSceneProxy::UpdateUVData(int32 XOffset, int32 YOffset, flo
 			VertexBuffers.StaticMeshVertexBuffer.SetVertexUV(y * Size + x, 0, FVector2D((XOffset + x)* Tiling, (YOffset + y)* Tiling));
 		}
 	}
+}
 
-	// Update or initialize the UV buffer
-	if (VertexBuffers.StaticMeshVertexBuffer.IsInitialized())
+void FTerrainComponentSceneProxy::UpdateMap(TSharedPtr<FMapSection, ESPMode::ThreadSafe> SectionProxy)
+{
+	// Copy map data to buffers
+	MapProxy = SectionProxy;
+	UpdateMapData();
+
+	// Copy buffers to RHI
 	{
-		VertexBuffers.StaticMeshVertexBuffer.UpdateRHI();
+		auto& vertex_buffer = VertexBuffers.PositionVertexBuffer;
+		void* vertex_data = RHILockVertexBuffer(vertex_buffer.VertexBufferRHI, 0, vertex_buffer.GetNumVertices() * vertex_buffer.GetStride(), RLM_WriteOnly);
+		FMemory::Memcpy(vertex_data, vertex_buffer.GetVertexData(), vertex_buffer.GetNumVertices() * vertex_buffer.GetStride());
+		RHIUnlockVertexBuffer(vertex_buffer.VertexBufferRHI);
 	}
-	else
+
 	{
-		VertexBuffers.StaticMeshVertexBuffer.InitResource();
+		auto& vertex_buffer = VertexBuffers.StaticMeshVertexBuffer;
+		void* vertex_data = RHILockVertexBuffer(vertex_buffer.TangentsVertexBuffer.VertexBufferRHI, 0, vertex_buffer.GetTangentSize(), RLM_WriteOnly);
+		FMemory::Memcpy(vertex_data, vertex_buffer.GetTangentData(), vertex_buffer.GetTangentSize());
+		RHIUnlockVertexBuffer(vertex_buffer.TangentsVertexBuffer.VertexBufferRHI);
 	}
 }
 
-void FTerrainComponentSceneProxy::Update(TSharedPtr<FMapSection, ESPMode::ThreadSafe> SectionProxy)
+void FTerrainComponentSceneProxy::UpdateUVs(int32 XOffset, int32 YOffset, float Tiling)
 {
-	MapProxy = SectionProxy;
-	UpdateMapData();
+	// Set UV data
+	UpdateUVData(XOffset, YOffset, Tiling);
+
+	// Copy buffers to RHI
+	{
+		auto& vertex_buffer = VertexBuffers.StaticMeshVertexBuffer;
+		void* vertex_data = RHILockVertexBuffer(vertex_buffer.TexCoordVertexBuffer.VertexBufferRHI, 0, vertex_buffer.GetTexCoordSize(), RLM_WriteOnly);
+		FMemory::Memcpy(vertex_data, vertex_buffer.GetTexCoordData(), vertex_buffer.GetTexCoordSize());
+		RHIUnlockVertexBuffer(vertex_buffer.TexCoordVertexBuffer.VertexBufferRHI);
+	}
 }
 
 void FTerrainComponentSceneProxy::UpdateMapData()
@@ -402,23 +424,5 @@ void FTerrainComponentSceneProxy::UpdateMapData()
 
 			VertexBuffers.StaticMeshVertexBuffer.SetVertexTangents(i, tangent_x, tangent_y, normal);
 		}
-	}
-
-	// Update or initialize buffer RHI
-	if (VertexBuffers.PositionVertexBuffer.IsInitialized())
-	{
-		VertexBuffers.PositionVertexBuffer.UpdateRHI();
-	}
-	else
-	{
-		VertexBuffers.PositionVertexBuffer.InitResource();
-	}
-	if (VertexBuffers.StaticMeshVertexBuffer.IsInitialized())
-	{
-		VertexBuffers.StaticMeshVertexBuffer.UpdateRHI();
-	}
-	else
-	{
-		VertexBuffers.StaticMeshVertexBuffer.InitResource();
 	}
 }

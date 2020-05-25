@@ -171,7 +171,7 @@ void UTerrainComponent::Update(TSharedPtr<FMapSection, ESPMode::ThreadSafe> NewS
 	// Update the scene proxy
 	FTerrainComponentSceneProxy* proxy = (FTerrainComponentSceneProxy*)SceneProxy;
 	ENQUEUE_RENDER_COMMAND(FComponentUpdate)([proxy, NewSection](FRHICommandListImmediate& RHICmdList) {
-		proxy->Update(NewSection);
+		proxy->UpdateMap(NewSection);
 		});
 	MarkRenderTransformDirty();
 }
