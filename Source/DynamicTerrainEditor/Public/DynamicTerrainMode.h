@@ -47,6 +47,8 @@ public:
 
 	virtual bool IsSelectable() const override;
 
+	// Initialize the decal materials
+	void Initialize();
 	// Show or hide the brush decal
 	void ShowBrush(bool Visible);
 	// Set the location and size of the brush decal

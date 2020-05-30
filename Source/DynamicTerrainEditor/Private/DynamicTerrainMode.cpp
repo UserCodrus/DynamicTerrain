@@ -24,6 +24,11 @@ bool ABrushProxy::IsSelectable() const
 	return false;
 }
 
+void ABrushProxy::Initialize()
+{
+	Decal->CreateMaterialInstance();
+}
+
 void ABrushProxy::ShowBrush(bool Visible)
 {
 	Decal->SetVisibility(Visible);
@@ -125,6 +130,7 @@ void FDynamicTerrainMode::Enter()
 	FActorSpawnParameters spawn_params;
 	spawn_params.ObjectFlags = EObjectFlags::RF_Transient;
 	Brush = GetWorld()->SpawnActor<ABrushProxy>(spawn_params);
+	Brush->Initialize();
 
 	// Select a terrain from the level, preferably one matching the name of the last terrain selected in this mode
 	for (TActorIterator<ATerrain> itr(GetWorld()); itr; ++itr)

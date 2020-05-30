@@ -19,12 +19,7 @@ UBrushDecal::UBrushDecal()
 
 void UBrushDecal::BeginPlay()
 {
-	// Create a material instance for the decal
-	if (DecalMaterial == nullptr)
-	{
-		SetDecalMaterial(BrushMaterial);
-	}
-	BrushInstance = CreateDynamicMaterialInstance();
+	CreateMaterialInstance();
 }
 
 void UBrushDecal::Resize(FTerrainTool* Tool, ATerrain* Terrain)
@@ -43,4 +38,14 @@ void UBrushDecal::Resize(FTerrainTool* Tool, ATerrain* Terrain)
 void UBrushDecal::ChangeColor(FColor Color)
 {
 	BrushInstance->SetVectorParameterValue(TEXT("Color"), Color);
+}
+
+void UBrushDecal::CreateMaterialInstance()
+{
+	// Assign the default material if one isn't assigned
+	if (DecalMaterial == nullptr)
+	{
+		SetDecalMaterial(BrushMaterial);
+	}
+	BrushInstance = CreateDynamicMaterialInstance();
 }

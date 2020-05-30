@@ -21,6 +21,8 @@ public:
 	void Resize(FTerrainTool* Tool, ATerrain* Terrain);
 	// Change the color of the cursor
 	void ChangeColor(FColor Color);
+	// Create a material instance for the decal
+	void CreateMaterialInstance();
 
 protected:
 	// The default material used for the tool brushes
