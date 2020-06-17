@@ -60,7 +60,7 @@ protected:
 
 	// The heightmap data the component needs to render
 	TSharedPtr<FMapSection, ESPMode::ThreadSafe> MapProxy = nullptr;
-	// The width of the component in vertices
+	// The width of the component, the number of vertices is Size * Size + 1
 	uint32 Size;
 
 	// The vertex buffers containing mesh data

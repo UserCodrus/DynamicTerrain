@@ -67,7 +67,7 @@ class UDynamicTerrainSettings : public UObject
 	GENERATED_BODY()
 public:
 	UPROPERTY(EditAnywhere, Category = "Terrain Settings")
-		int32 ComponentSize = 64;
+		int32 ComponentSize = 8;
 	UPROPERTY(EditAnywhere, Category = "Terrain Settings")
 		int32 WidthX = 3;
 	UPROPERTY(EditAnywhere, Category = "Terrain Settings")

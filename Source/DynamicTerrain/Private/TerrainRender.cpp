@@ -9,7 +9,7 @@ FTerrainComponentSceneProxy::FTerrainComponentSceneProxy(UTerrainComponent* Comp
 {
 	// Get map data from the parent component
 	MapProxy = Component->GetMapProxy();
-	Size = Component->GetSize();
+	Size = Component->Size;
 	IndexBuffer.Indices = Component->IndexBuffer;
 
 	// Get the material from the parent or use the engine default
@@ -20,8 +20,8 @@ FTerrainComponentSceneProxy::FTerrainComponentSceneProxy(UTerrainComponent* Comp
 	}
 
 	// Initialize the component on the rendering thread
-	float xoffset = Component->XOffset * (Component->Size - 1);
-	float yoffset = Component->YOffset * (Component->Size - 1);
+	float xoffset = Component->XOffset * (Size * Size);
+	float yoffset = Component->YOffset * (Size * Size);
 	float tiling = Component->Tiling;
 	ENQUEUE_RENDER_COMMAND(FComponentFillBuffers)([this, xoffset, yoffset, tiling](FRHICommandListImmediate& RHICmdList) {
 		Initialize(xoffset, yoffset, tiling);
@@ -133,8 +133,9 @@ FPrimitiveViewRelevance FTerrainComponentSceneProxy::GetViewRelevance(const FSce
 void FTerrainComponentSceneProxy::Initialize(int32 X, int32 Y, float Tiling)
 {
 	// Initialize buffers
-	VertexBuffers.PositionVertexBuffer.Init(Size * Size);
-	VertexBuffers.StaticMeshVertexBuffer.Init(Size * Size, 1);
+	uint32 width = Size * Size + 1;
+	VertexBuffers.PositionVertexBuffer.Init(width * width);
+	VertexBuffers.StaticMeshVertexBuffer.Init(width * width, 1);
 
 	// Load data for all buffers
 	UpdateMapData();
@@ -198,11 +199,12 @@ void FTerrainComponentSceneProxy::UpdateUVs(int32 XOffset, int32 YOffset, float 
 
 void FTerrainComponentSceneProxy::UpdateMapData()
 {
-	for (uint32 y = 0; y < Size; ++y)
+	uint32 width = Size * Size + 1;
+	for (uint32 y = 0; y < width; ++y)
 	{
-		for (uint32 x = 0; x < Size; ++x)
+		for (uint32 x = 0; x < width; ++x)
 		{
-			uint32 i = y * Size + x;
+			uint32 i = y * width + x;
 
 			// Position data
 			VertexBuffers.PositionVertexBuffer.VertexPosition(i) = FVector(x, y, MapProxy->Data[(y + 1) * MapProxy->X + x + 1]);
@@ -235,11 +237,12 @@ void FTerrainComponentSceneProxy::UpdateMapData()
 void FTerrainComponentSceneProxy::UpdateUVData(int32 XOffset, int32 YOffset, float Tiling)
 {
 	// Fill UV data
-	for (uint32 y = 0; y < Size; ++y)
+	uint32 width = Size * Size + 1;
+	for (uint32 y = 0; y < width; ++y)
 	{
-		for (uint32 x = 0; x < Size; ++x)
+		for (uint32 x = 0; x < width; ++x)
 		{
-			VertexBuffers.StaticMeshVertexBuffer.SetVertexUV(y * Size + x, 0, FVector2D((XOffset + x) * Tiling, (YOffset + y) * Tiling));
+			VertexBuffers.StaticMeshVertexBuffer.SetVertexUV(y * width + x, 0, FVector2D((XOffset + x) * Tiling, (YOffset + y) * Tiling));
 		}
 	}
 }
