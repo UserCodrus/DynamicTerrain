@@ -20,8 +20,9 @@ FTerrainComponentSceneProxy::FTerrainComponentSceneProxy(UTerrainComponent* Comp
 	}
 
 	// Initialize the component on the rendering thread
-	float xoffset = Component->XOffset * (Size * Size);
-	float yoffset = Component->YOffset * (Size * Size);
+	uint32 width = GetTerrainComponentWidth(Size) - 1;
+	float xoffset = Component->XOffset * width;
+	float yoffset = Component->YOffset * width;
 	float tiling = Component->Tiling;
 	ENQUEUE_RENDER_COMMAND(FComponentFillBuffers)([this, xoffset, yoffset, tiling](FRHICommandListImmediate& RHICmdList) {
 		Initialize(xoffset, yoffset, tiling);
@@ -133,7 +134,7 @@ FPrimitiveViewRelevance FTerrainComponentSceneProxy::GetViewRelevance(const FSce
 void FTerrainComponentSceneProxy::Initialize(int32 X, int32 Y, float Tiling)
 {
 	// Initialize buffers
-	uint32 width = Size * Size + 1;
+	uint32 width = GetTerrainComponentWidth(Size);
 	VertexBuffers.PositionVertexBuffer.Init(width * width);
 	VertexBuffers.StaticMeshVertexBuffer.Init(width * width, 1);
 
@@ -199,7 +200,7 @@ void FTerrainComponentSceneProxy::UpdateUVs(int32 XOffset, int32 YOffset, float 
 
 void FTerrainComponentSceneProxy::UpdateMapData()
 {
-	uint32 width = Size * Size + 1;
+	uint32 width = GetTerrainComponentWidth(Size);
 	for (uint32 y = 0; y < width; ++y)
 	{
 		for (uint32 x = 0; x < width; ++x)
@@ -237,7 +238,7 @@ void FTerrainComponentSceneProxy::UpdateMapData()
 void FTerrainComponentSceneProxy::UpdateUVData(int32 XOffset, int32 YOffset, float Tiling)
 {
 	// Fill UV data
-	uint32 width = Size * Size + 1;
+	uint32 width = GetTerrainComponentWidth(Size);
 	for (uint32 y = 0; y < width; ++y)
 	{
 		for (uint32 x = 0; x < width; ++x)

@@ -107,7 +107,7 @@ void UTerrainComponent::Initialize(ATerrain* Terrain, TSharedPtr<FMapSection, ES
 void UTerrainComponent::CreateMeshData()
 {
 	// Create vertex data
-	uint32 width = Size * Size + 1;
+	uint32 width = GetTerrainComponentWidth(Size);
 	Vertices.Empty();
 	Vertices.SetNumUninitialized(width * width);
 	for (uint32 y = 0; y < width; ++y)
@@ -119,7 +119,7 @@ void UTerrainComponent::CreateMeshData()
 	}
 
 	// Create triangles
-	uint32 polygons = Size * Size;
+	uint32 polygons = width - 1;
 	IndexBuffer.Empty();
 	IndexBuffer.SetNumUninitialized(polygons * polygons * 6);
 	for (uint32 y = 0; y < polygons; ++y)
@@ -173,7 +173,7 @@ void UTerrainComponent::Update(TSharedPtr<FMapSection, ESPMode::ThreadSafe> NewS
 	MapProxy = NewSection;
 
 	// Update collision data and bounds
-	uint32 width = Size * Size + 1;
+	uint32 width = GetTerrainComponentWidth(Size);
 	for (uint32 y = 0; y < width; ++y)
 	{
 		for (uint32 x = 0; x < width; ++x)
@@ -282,18 +282,19 @@ void UTerrainComponent::SetMapProxy(TSharedPtr<FMapSection, ESPMode::ThreadSafe>
 
 void UTerrainComponent::VerifyMapProxy()
 {
+	uint32 width = GetTerrainComponentWidth(Size) + 2;
 	if (!MapProxy.IsValid())
 	{
 		if (Size > 1)
 		{
-			MapProxy = MakeShareable(new FMapSection(Size * Size + 3, Size * Size + 3));
+			MapProxy = MakeShareable(new FMapSection(width, width));
 		}
 	}
 	else
 	{
-		if (MapProxy->X != Size * Size + 3 || MapProxy->Y != Size * Size + 3)
+		if (MapProxy->X != width || MapProxy->Y != width)
 		{
-			MapProxy = MakeShareable(new FMapSection(Size * Size + 3, Size * Size + 3));
+			MapProxy = MakeShareable(new FMapSection(width, width));
 		}
 	}
 }

@@ -264,7 +264,7 @@ void FDynamicTerrainMode::Render(const FSceneView* View, FViewport* Viewport, FP
 			}
 		}
 
-		int32 polygons = Settings->ComponentSize * Settings->ComponentSize;
+		int32 polygons = GetTerrainComponentWidth(Settings->ComponentSize);
 		float offset_x = (float)(Settings->WidthX * polygons) * scale.X / 2.0f;
 		float offset_y = (float)(Settings->WidthY * polygons) * scale.Y / 2.0f;
 
@@ -315,8 +315,9 @@ void FDynamicTerrainMode::Render(const FSceneView* View, FViewport* Viewport, FP
 			scale = SelectedTerrain->GetActorScale3D();
 			center = SelectedTerrain->GetActorLocation();
 
-			float offset_x = (float)(SelectedTerrain->GetXWidth() * (SelectedTerrain->GetComponentSize() * SelectedTerrain->GetComponentSize())) * scale.X / 2.0f;
-			float offset_y = (float)(SelectedTerrain->GetYWidth() * (SelectedTerrain->GetComponentSize() * SelectedTerrain->GetComponentSize())) * scale.Y / 2.0f;
+			uint32 width = GetTerrainComponentWidth(SelectedTerrain->GetComponentSize()) - 1;
+			float offset_x = (float)(SelectedTerrain->GetXWidth() * width) * scale.X / 2.0f;
+			float offset_y = (float)(SelectedTerrain->GetYWidth() * width) * scale.Y / 2.0f;
 
 			FVector p00(center.X - offset_x, center.Y - offset_y, center.Z);
 			FVector p10(center.X + offset_x, center.Y - offset_y, center.Z);
@@ -472,7 +473,7 @@ void FDynamicTerrainMode::ModeUpdate()
 	else
 	{
 		// Change the settings to default
-		Settings->ComponentSize = 8;
+		Settings->ComponentSize = 6;
 		Settings->WidthX = 3;
 		Settings->WidthY = 3;
 		Settings->UVTiling = 1.0f;
