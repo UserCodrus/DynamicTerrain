@@ -10,7 +10,15 @@ FTerrainComponentSceneProxy::FTerrainComponentSceneProxy(UTerrainComponent* Comp
 	// Get map data from the parent component
 	MapProxy = Component->GetMapProxy();
 	Size = Component->Size;
-	IndexBuffer.Indices = Component->IndexBuffer;
+	MaxLOD = Component->LODs;
+	
+	// Create LOD indices
+	ScaleLODs(Component->LODScale);
+	IndexBuffers.SetNum(MaxLOD);
+	for (uint32 i = 0; i < MaxLOD; ++i)
+	{
+		CreateIndexBuffer(IndexBuffers[i].Indices, i);
+	}
 
 	// Get the material from the parent or use the engine default
 	Material = Component->GetMaterial(0);
@@ -33,8 +41,11 @@ FTerrainComponentSceneProxy::~FTerrainComponentSceneProxy()
 {
 	VertexBuffers.PositionVertexBuffer.ReleaseResource();
 	VertexBuffers.StaticMeshVertexBuffer.ReleaseResource();
-	IndexBuffer.ReleaseResource();
 	VertexFactory.ReleaseResource();
+	for (int32 i = 0; i < IndexBuffers.Num(); ++i)
+	{
+		IndexBuffers[i].ReleaseResource();
+	}
 }
 
 /// Scene Proxy Interface ///
@@ -66,6 +77,27 @@ void FTerrainComponentSceneProxy::GetDynamicMeshElements(const TArray< const FSc
 		{
 			const FSceneView* view = Views[view_index];
 
+			// Get the LOD index of the mesh
+			const FSceneView& lod_view = GetLODView(*view);
+			const FBoxSphereBounds bounds = GetBounds();
+
+			FCachedSystemScalabilityCVars cvars = GetCachedScalabilityCVars();
+			float screen_scale = cvars.StaticMeshLODDistanceScale != 0.0f ? 1.0f / cvars.StaticMeshLODDistanceScale : 1.0f;
+
+			uint32 LOD = 0;
+			float radius = ComputeBoundsScreenRadiusSquared(bounds.Origin, bounds.SphereRadius, *view) * screen_scale * screen_scale * lod_view.LODDistanceFactorSquared;
+			for (uint32 i = 0; i < MaxLOD; ++i)
+			{
+				if (FMath::Square(LODScales[i] * 0.5) > radius)
+				{
+					LOD = i;
+				}
+				else
+				{
+					break;
+				}
+			}
+
 			// Set up the mesh
 			FMeshBatch& mesh = Collector.AllocateMesh();
 			mesh.bWireframe = wireframe;
@@ -78,9 +110,9 @@ void FTerrainComponentSceneProxy::GetDynamicMeshElements(const TArray< const FSc
 
 			// Set up the first element of the mesh (we only need one)
 			FMeshBatchElement& element = mesh.Elements[0];
-			element.IndexBuffer = &IndexBuffer;
+			element.IndexBuffer = &IndexBuffers[LOD];
 			element.FirstIndex = 0;
-			element.NumPrimitives = IndexBuffer.Indices.Num() / 3;
+			element.NumPrimitives = IndexBuffers[LOD].Indices.Num() / 3;
 			element.MinVertexIndex = 0;
 			element.MaxVertexIndex = VertexBuffers.PositionVertexBuffer.GetNumVertices() - 1;
 
@@ -143,7 +175,10 @@ void FTerrainComponentSceneProxy::Initialize(int32 X, int32 Y, float Tiling)
 	UpdateUVData(X, Y, Tiling);
 
 	// Initialize the buffers
-	IndexBuffer.InitResource();
+	for (int32 i = 0; i < IndexBuffers.Num(); ++i)
+	{
+		IndexBuffers[i].InitResource();
+	}
 	VertexBuffers.PositionVertexBuffer.InitResource();
 	VertexBuffers.StaticMeshVertexBuffer.InitResource();
 
@@ -245,5 +280,41 @@ void FTerrainComponentSceneProxy::UpdateUVData(int32 XOffset, int32 YOffset, flo
 		{
 			VertexBuffers.StaticMeshVertexBuffer.SetVertexUV(y * width + x, 0, FVector2D((XOffset + x) * Tiling, (YOffset + y) * Tiling));
 		}
+	}
+}
+
+void FTerrainComponentSceneProxy::CreateIndexBuffer(TArray<uint32>& Indices, uint32 Stride)
+{
+	Stride = FMath::Exp2(Stride);
+	uint32 width = GetTerrainComponentWidth(Size);
+	uint32 polygons = (width - 1) / Stride;
+
+	Indices.Empty();
+	Indices.SetNumUninitialized(polygons * polygons * 6);
+	for (uint32 y = 0; y < polygons; y++)
+	{
+		for (uint32 x = 0; x < polygons; x++)
+		{
+			uint32 i = (y * polygons + x) * 6;
+
+			Indices[i] = x * Stride + y * Stride * width;
+			Indices[i + 1] = (1 + x) * Stride + (y + 1) * Stride * width;
+			Indices[i + 2] = (1 + x) * Stride + y * Stride * width;
+
+			Indices[i + 3] = x * Stride + y * Stride * width;
+			Indices[i + 4] = x * Stride + (y + 1) * Stride * width;
+			Indices[i + 5] = (1 + x) * Stride + (y + 1) * Stride * width;
+		}
+	}
+}
+
+void FTerrainComponentSceneProxy::ScaleLODs(float Scale)
+{
+	LODScales.Empty();
+	LODScales.SetNumUninitialized(MaxLOD);
+
+	for (uint32 i = 0; i < MaxLOD; ++i)
+	{
+		LODScales[i] = FMath::Pow(Scale, i);
 	}
 }

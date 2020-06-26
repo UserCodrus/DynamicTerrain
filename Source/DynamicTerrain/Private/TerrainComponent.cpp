@@ -18,6 +18,8 @@ UTerrainComponent::UTerrainComponent(const FObjectInitializer& ObjectInitializer
 {
 	Size = 0;
 	Tiling = 1.0f;
+	LODs = 5;
+	LODScale = 0.7;
 
 	// Disable ticking for the component to save some CPU cycles
 	PrimaryComponentTick.bCanEverTick = false;

@@ -264,7 +264,7 @@ void FDynamicTerrainMode::Render(const FSceneView* View, FViewport* Viewport, FP
 			}
 		}
 
-		int32 polygons = GetTerrainComponentWidth(Settings->ComponentSize);
+		int32 polygons = GetTerrainComponentWidth(Settings->ComponentSize) - 1;
 		float offset_x = (float)(Settings->WidthX * polygons) * scale.X / 2.0f;
 		float offset_y = (float)(Settings->WidthY * polygons) * scale.Y / 2.0f;
 

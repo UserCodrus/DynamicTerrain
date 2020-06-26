@@ -57,6 +57,10 @@ protected:
 	void UpdateMapData();
 	// Update mesh UVs using the provided offsets and tiling
 	void UpdateUVData(int32 XOffset, int32 YOffset, float Tiling);
+	// Create a set of triangles
+	void CreateIndexBuffer(TArray<uint32>& Indices, uint32 Stride);
+	// Set LOD scales for each lod
+	void ScaleLODs(float Scale);
 
 	// The heightmap data the component needs to render
 	TSharedPtr<FMapSection, ESPMode::ThreadSafe> MapProxy = nullptr;
@@ -66,11 +70,16 @@ protected:
 	// The vertex buffers containing mesh data
 	FStaticMeshVertexBuffers VertexBuffers;
 	// The triangles used by the component's mesh
-	FDynamicMeshIndexBuffer32 IndexBuffer;
+	TArray<FDynamicMeshIndexBuffer32> IndexBuffers;
 	// The vertex factory for storing vertex type data
 	FLocalVertexFactory VertexFactory;
 
 	// The material used to render the component
 	UMaterialInterface* Material;
 	FMaterialRelevance MaterialRelevance;
+
+	// The number of LODs to create for the mesh
+	uint32 MaxLOD;
+	// LOD scales for each individual LOD
+	TArray<float> LODScales;
 };

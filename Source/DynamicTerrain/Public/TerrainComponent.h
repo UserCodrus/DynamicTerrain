@@ -87,6 +87,12 @@ private:
 	// The UV Tiling of the component
 	UPROPERTY(VisibleAnywhere)
 		float Tiling;
+	// The number of LODs the component uses
+	UPROPERTY(VisibleAnywhere)
+		uint32 LODs;
+	// The scaling factor for LOD transitions
+	UPROPERTY(VisibleAnywhere)
+		float LODScale;
 
 	// The collision body for the object
 	UPROPERTY(Instanced)
