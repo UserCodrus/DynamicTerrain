@@ -18,8 +18,8 @@ UTerrainComponent::UTerrainComponent(const FObjectInitializer& ObjectInitializer
 {
 	Size = 0;
 	Tiling = 1.0f;
-	LODs = 5;
-	LODScale = 0.7;
+	LODs = 1;
+	LODScale = 0.5;
 
 	// Disable ticking for the component to save some CPU cycles
 	PrimaryComponentTick.bCanEverTick = false;
@@ -98,6 +98,8 @@ void UTerrainComponent::Initialize(ATerrain* Terrain, TSharedPtr<FMapSection, ES
 {
 	XOffset = X;
 	YOffset = Y;
+	LODs = Terrain->GetNumLODs();
+	LODScale = Terrain->GetLODDistanceScale();
 	Tiling = Terrain->GetTiling();
 	AsyncCooking = Terrain->GetAsyncCookingEnabled();
 	MapProxy = Proxy;

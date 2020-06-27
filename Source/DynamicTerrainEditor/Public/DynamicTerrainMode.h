@@ -66,14 +66,19 @@ class UDynamicTerrainSettings : public UObject
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY(EditAnywhere, Category = "Terrain Settings")
+	UPROPERTY(EditAnywhere, Category = "Terrain Settings|Terrain")
 		int32 ComponentSize = 6;
-	UPROPERTY(EditAnywhere, Category = "Terrain Settings")
+	UPROPERTY(EditAnywhere, Category = "Terrain Settings|Terrain")
 		int32 WidthX = 3;
-	UPROPERTY(EditAnywhere, Category = "Terrain Settings")
+	UPROPERTY(EditAnywhere, Category = "Terrain Settings|Terrain")
 		int32 WidthY = 3;
-	UPROPERTY(EditAnywhere, Category = "Terrain Settings")
+	UPROPERTY(EditAnywhere, Category = "Terrain Settings|Terrain")
 		float UVTiling = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Terrain Settings|LOD")
+		int32 LODLevels = 5;
+	UPROPERTY(EditAnywhere, Category = "Terrain Settings|LOD")
+		float LODScale = 0.5;
 
 	UPROPERTY(EditAnywhere, Category = "Brush Settings")
 		float Size = 10.0f;

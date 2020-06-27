@@ -469,6 +469,8 @@ void FDynamicTerrainMode::ModeUpdate()
 		Settings->WidthX = SelectedTerrain->GetXWidth();
 		Settings->WidthY = SelectedTerrain->GetYWidth();
 		Settings->UVTiling = SelectedTerrain->GetTiling();
+		Settings->LODLevels = SelectedTerrain->GetNumLODs();
+		Settings->LODScale = SelectedTerrain->GetLODDistanceScale();
 	}
 	else
 	{
@@ -477,6 +479,8 @@ void FDynamicTerrainMode::ModeUpdate()
 		Settings->WidthX = 3;
 		Settings->WidthY = 3;
 		Settings->UVTiling = 1.0f;
+		Settings->LODLevels = 5;
+		Settings->LODScale = 0.5;
 	}
 
 	((FDynamicTerrainModeToolkit*)GetToolkit().Get())->RefreshDetails();
@@ -487,6 +491,7 @@ void FDynamicTerrainMode::ResizeTerrain()
 	if (SelectedTerrain != nullptr)
 	{
 		SelectedTerrain->SetTiling(Settings->UVTiling);
+		SelectedTerrain->SetLODs(Settings->LODLevels, Settings->LODScale);
 		SelectedTerrain->Resize(Settings->ComponentSize, Settings->WidthX, Settings->WidthY);
 	}
 }
@@ -500,6 +505,7 @@ void FDynamicTerrainMode::CreateTerrain()
 
 	// Resize the new terrain
 	new_terrain->SetTiling(Settings->UVTiling);
+	new_terrain->SetLODs(Settings->LODLevels, Settings->LODScale);
 	new_terrain->Resize(Settings->ComponentSize, Settings->WidthX, Settings->WidthY);
 
 	SelectTerrain(new_terrain);
