@@ -17,7 +17,7 @@ FTerrainComponentSceneProxy::FTerrainComponentSceneProxy(UTerrainComponent* Comp
 	IndexBuffers.SetNum(MaxLOD);
 	for (uint32 i = 0; i < MaxLOD; ++i)
 	{
-		CreateIndexBuffer(IndexBuffers[i].Indices, i);
+		UpdateIndexData(IndexBuffers[i].Indices, i);
 	}
 
 	// Get the material from the parent or use the engine default
@@ -29,8 +29,8 @@ FTerrainComponentSceneProxy::FTerrainComponentSceneProxy(UTerrainComponent* Comp
 
 	// Initialize the component on the rendering thread
 	uint32 width = GetTerrainComponentWidth(Size) - 1;
-	float xoffset = Component->XOffset * width;
-	float yoffset = Component->YOffset * width;
+	int32 xoffset = Component->XOffset;
+	int32 yoffset = Component->YOffset;
 	float tiling = Component->Tiling;
 	ENQUEUE_RENDER_COMMAND(FComponentFillBuffers)([this, xoffset, yoffset, tiling](FRHICommandListImmediate& RHICmdList) {
 		Initialize(xoffset, yoffset, tiling);
@@ -274,6 +274,8 @@ void FTerrainComponentSceneProxy::UpdateUVData(int32 XOffset, int32 YOffset, flo
 {
 	// Fill UV data
 	uint32 width = GetTerrainComponentWidth(Size);
+	XOffset *= width - 1;
+	YOffset *= width - 1;
 	for (uint32 y = 0; y < width; ++y)
 	{
 		for (uint32 x = 0; x < width; ++x)
@@ -283,7 +285,7 @@ void FTerrainComponentSceneProxy::UpdateUVData(int32 XOffset, int32 YOffset, flo
 	}
 }
 
-void FTerrainComponentSceneProxy::CreateIndexBuffer(TArray<uint32>& Indices, uint32 Stride)
+void FTerrainComponentSceneProxy::UpdateIndexData(TArray<uint32>& Indices, uint32 Stride)
 {
 	Stride = FMath::Exp2(Stride);
 	uint32 width = GetTerrainComponentWidth(Size);

@@ -57,8 +57,8 @@ protected:
 	void UpdateMapData();
 	// Update mesh UVs using the provided offsets and tiling
 	void UpdateUVData(int32 XOffset, int32 YOffset, float Tiling);
-	// Create a set of triangles
-	void CreateIndexBuffer(TArray<uint32>& Indices, uint32 Stride);
+	// Fill index buffers
+	void UpdateIndexData(TArray<uint32>& Indices, uint32 Stride);
 	// Set LOD scales for each lod
 	void ScaleLODs(float Scale);
 

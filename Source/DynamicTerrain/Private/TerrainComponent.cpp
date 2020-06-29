@@ -172,6 +172,22 @@ void UTerrainComponent::SetTiling(float NewTiling)
 		});
 }
 
+void UTerrainComponent::SetLODs(int32 NumLODs, float DistanceScale)
+{
+	if ((uint32)NumLODs < Size)
+	{
+		LODs = NumLODs;
+	}
+	else
+	{
+		LODs = Size;
+	}
+	LODScale = DistanceScale;
+
+	// Reset the proxy to regenerate LODs
+	MarkRenderStateDirty();
+}
+
 void UTerrainComponent::Update(TSharedPtr<FMapSection, ESPMode::ThreadSafe> NewSection)
 {
 	MapProxy = NewSection;

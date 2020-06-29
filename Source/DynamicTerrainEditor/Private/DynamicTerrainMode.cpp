@@ -490,9 +490,26 @@ void FDynamicTerrainMode::ResizeTerrain()
 {
 	if (SelectedTerrain != nullptr)
 	{
-		SelectedTerrain->SetTiling(Settings->UVTiling);
-		SelectedTerrain->SetLODs(Settings->LODLevels, Settings->LODScale);
-		SelectedTerrain->Resize(Settings->ComponentSize, Settings->WidthX, Settings->WidthY);
+		if (Settings->ComponentSize != SelectedTerrain->GetComponentSize() || Settings->WidthX != SelectedTerrain->GetXWidth() || Settings->WidthY != SelectedTerrain->GetYWidth())
+		{
+			// Update everything
+			SelectedTerrain->SetTiling(Settings->UVTiling);
+			SelectedTerrain->SetLODs(Settings->LODLevels, Settings->LODScale);
+			SelectedTerrain->Resize(Settings->ComponentSize, Settings->WidthX, Settings->WidthY);
+		}
+		else
+		{
+			// Update LODs
+			if (Settings->LODLevels != SelectedTerrain->GetNumLODs() || Settings->LODScale != SelectedTerrain->GetLODDistanceScale())
+			{
+				SelectedTerrain->SetLODs(Settings->LODLevels, Settings->LODScale);
+			}
+			// Update UV settings
+			if (Settings->UVTiling != SelectedTerrain->GetTiling())
+			{
+				SelectedTerrain->SetTiling(Settings->UVTiling);
+			}
+		}
 	}
 }
 

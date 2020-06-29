@@ -45,6 +45,8 @@ public:
 	inline uint32 GetSize();
 	// Set component tiling
 	void SetTiling(float NewTiling);
+	// Set LOD levels and scaling
+	void SetLODs(int32 NumLODs, float DistanceScale);
 	// Update rendering data from a heightmap section
 	void Update(TSharedPtr<FMapSection, ESPMode::ThreadSafe> NewSection);
 
