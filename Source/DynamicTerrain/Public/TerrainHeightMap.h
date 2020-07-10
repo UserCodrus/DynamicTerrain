@@ -41,7 +41,19 @@ public:
 	// Get a copy of a portion of the map
 	inline void GetMapSection(FMapSection* Section, FIntPoint Min);
 
+	// Get the height at a given vertex
 	inline float GetHeight(uint32 X, uint32 Y) const;
+	// Get the height of the map at a given point
+	inline float GetLinearHeight(float X, float Y) const;
+	// Get the normal of a given vertex
+	inline FVector GetNormal(uint32 X, uint32 Y) const;
+	// Get the normal of the map at a given point
+	inline FVector GetLinearNormal(float X, float Y) const;
+	// Get the X tangent at a given vertex
+	inline FVector GetTangent(uint32 X, uint32 Y) const;
+	// Get the X tangent of the map at a given point
+	inline FVector GetLinearTangent(float X, float Y) const;
+	// Set the height of the heightmap at the given vertex
 	inline void SetHeight(uint32 X, uint32 Y, float Height);
 
 	inline int32 GetWidthX() const;
@@ -57,28 +69,4 @@ protected:
 		int32 WidthX = 0;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 		int32 WidthY = 0;
-};
-
-UCLASS()
-class DYNAMICTERRAIN_API UMapGenerator : public UObject
-{
-	GENERATED_BODY()
-
-public:
-	/// Map Generator Functions ///
-
-	UPROPERTY()
-		UHeightMap* Map = nullptr;
-
-	// Flatten the heightmap
-	UFUNCTION(BlueprintCallable)
-		void Flat(float Height);
-
-	// Generate a map using plasma noise
-	UFUNCTION(BlueprintCallable)
-		void Plasma(int32 Scale, float MaxHeight);
-
-	// Generate a map using multiple layers of perlin noise
-	UFUNCTION(BlueprintCallable)
-		void Perlin(int32 Frequency, int32 Octaves, float Persistence, float MaxHeight);
 };

@@ -255,17 +255,12 @@ void FTerrainComponentSceneProxy::UpdateMapData()
 
 			// Get tangents in the x and y directions
 			FVector vx(2.0f, 0, s21 - s01);
-			FVector vy(0, 2.0f, s10 - s12);
+			FVector vy(0, 2.0f, s12 - s10);
 
 			// Calculate the cross product of the two tangents
 			vx.Normalize();
 			vy.Normalize();
-
-			FVector normal = FVector::CrossProduct(vx, vy);
-			FVector tangent_x = FVector(vx.X, vx.Y, vx.Z);
-			FVector tangent_y = FVector(vy.X, vy.Y, vy.Z);
-
-			VertexBuffers.StaticMeshVertexBuffer.SetVertexTangents(i, tangent_x, tangent_y, normal);
+			VertexBuffers.StaticMeshVertexBuffer.SetVertexTangents(i, vx, vy, FVector::CrossProduct(vx, vy));
 		}
 	}
 }

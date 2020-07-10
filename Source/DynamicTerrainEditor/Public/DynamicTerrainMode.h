@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Terrain.h"
+#include "TerrainGenerator.h"
 #include "TerrainTools.h"
 #include "TerrainBrushDecal.h"
 
