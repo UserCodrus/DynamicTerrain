@@ -110,7 +110,7 @@ FDynamicTerrainMode::~FDynamicTerrainMode()
 
 	Settings->RemoveFromRoot();
 	MapGen->RemoveFromRoot();
-	MapGen->Map = nullptr;
+	MapGen->Terrain = nullptr;
 }
 
 /// Engine Functions ///
@@ -136,7 +136,7 @@ void FDynamicTerrainMode::Enter()
 	for (TActorIterator<ATerrain> itr(GetWorld()); itr; ++itr)
 	{
 		SelectedTerrain = *itr;
-		MapGen->Map = SelectedTerrain->GetMap();
+		MapGen->Terrain = SelectedTerrain;
 		if (SelectedTerrain->GetName() == TerrainName)
 		{
 			break;
@@ -167,7 +167,7 @@ void FDynamicTerrainMode::Exit()
 {
 	// Deselect the terrain to prevent dangling pointerse
 	SelectedTerrain = nullptr;
-	MapGen->Map = nullptr;
+	MapGen->Terrain = nullptr;
 
 	// Destroy the brush proxy
 	Brush->Destroy();
@@ -534,15 +534,19 @@ void FDynamicTerrainMode::SelectTerrain(ATerrain* Terrain)
 {
 	SelectedTerrain = Terrain;
 	TerrainName = SelectedTerrain->GetName();
-	MapGen->Map = SelectedTerrain->GetMap();
+	MapGen->Terrain = SelectedTerrain;
 
 	ModeUpdate();
 }
 
 void FDynamicTerrainMode::ProcessGenerateCommand(/*const TCHAR* Command*/)
 {
-	if (MapGen->Map == nullptr || CurrentGenerator == nullptr)
+	if (MapGen->Terrain == nullptr || CurrentGenerator == nullptr)
 		return;
+
+	// Get a new seed for the map generator
+	MapGen->NewSeed();
+	SelectedTerrain->DeleteFoliage();
 
 	// Create a console command using parameters from the settings panel
 	FString command(CurrentGenerator->Name.ToString());

@@ -474,14 +474,15 @@ PointNoise::PointNoise(unsigned x_bias, unsigned y_bias, unsigned num_points, un
 {
 	width = x_bias;
 	height = y_bias;
-	array_size = width * height;
 
 	// Generate points using random x and y values
 	std::default_random_engine rando(seed);
 	std::uniform_real_distribution<float> x_dist(0.0f, (float)width);
 	std::uniform_real_distribution<float> y_dist(0.0f, (float)height);
 
-	points = new std::vector<FVector2D>[array_size];
+	//points = new FVector2D[array_size];
+	Points.SetNumUninitialized(width * height);
+	point_grid = new std::vector<FVector2D*>[width * height];
 	for (unsigned i = 0; i < num_points; ++i)
 	{
 		FVector2D point(x_dist(rando), y_dist(rando));
@@ -489,7 +490,9 @@ PointNoise::PointNoise(unsigned x_bias, unsigned y_bias, unsigned num_points, un
 		// Add the point to the point grid
 		int X = (int)point.X;
 		int Y = (int)point.Y;
-		points[X + Y * width].push_back(point);
+		unsigned p = X + Y * width;
+		Points[p] = point;
+		point_grid[p].push_back(&point);
 	}
 }
 
@@ -497,23 +500,27 @@ PointNoise::PointNoise(const PointNoise& copy)
 {
 	width = copy.width;
 	height = copy.height;
-	array_size = copy.array_size;
 
-	points = new std::vector<FVector2D>[array_size];
-	for (unsigned i = 0; i < array_size; ++i)
+	point_grid = new std::vector<FVector2D*>[copy.Points.Num()];
+
+	// Copy points over
+	Points = copy.Points;
+
+	// Copy the sorting grid
+	for (unsigned i = 0; i < width * height; ++i)
 	{
-		for (unsigned j = 0; j < copy.points[i].size(); ++j)
+		for (unsigned j = 0; j < copy.point_grid[i].size(); ++j)
 		{
-			points[i].push_back(copy.points[i][j]);
+			point_grid[i].push_back(copy.point_grid[i][j]);
 		}
 	}
 }
 
 PointNoise::~PointNoise()
 {
-	if (points != nullptr)
+	if (point_grid != nullptr)
 	{
-		delete[] points;
+		delete[] point_grid;
 	}
 }
 
@@ -537,23 +544,23 @@ FVector2D PointNoise::getNearest(FVector2D location) const
 	// Check each grid cell surrounding the cell containing to current point
 	for (unsigned y = 0; y < 3; ++y)
 	{
-		long offset = (Y + y) * width;
+		int32 offset = (Y + y) * width;
 		for (unsigned x = 0; x < 3; ++x)
 		{
 			// Get the cell's location in the points array
-			long cell = (X + x) + offset;
-			if (cell > -1 && cell < (long)array_size)
+			int32 cell = (X + x) + offset;
+			if (cell > -1 && cell < Points.Num())
 			{
 				// Check each point in the cell
-				std::vector<FVector2D>* point_data = &points[cell];
+				std::vector<FVector2D*>* point_data = &point_grid[cell];
 				for (unsigned i = 0; i < point_data->size(); ++i)
 				{
 					// Check the distance to the point
-					float dist = distance2D(location, point_data->at(i));
+					float dist = distance2D(location, *point_data->at(i));
 					if (dist < nearest_distance)
 					{
 						nearest_distance = dist;
-						nearest = point_data->at(i);
+						nearest = *point_data->at(i);
 					}
 				}
 			}
@@ -595,24 +602,28 @@ float PointNoise::worley(float x, float y) const
 	return std::min(1.0f, value);
 }
 
+const TArray<FVector2D>& PointNoise::getPoints()
+{
+	return Points;
+}
+
 GridNoise::GridNoise(unsigned _width, unsigned _height, unsigned seed)
 {
 	width = _width;
 	height = _height;
-	array_size = width * height;
 
 	// Generate points at random locations within a unit grid
 	std::default_random_engine rando(seed);
 	std::uniform_real_distribution<float> dist(0.0f, 1.0f);
 
-	points = new FVector2D[array_size];
+	Points.SetNumUninitialized(width * height);
 	for (unsigned y = 0; y < height; ++y)
 	{
 		for (unsigned x = 0; x < width; ++x)
 		{
 			unsigned loc = x + y * width;
-			points[loc].X = x + dist(rando);
-			points[loc].Y = y + dist(rando);
+			Points[loc].X = x + dist(rando);
+			Points[loc].Y = y + dist(rando);
 		}
 	}
 }
@@ -621,22 +632,12 @@ GridNoise::GridNoise(const GridNoise& copy)
 {
 	width = copy.width;
 	height = copy.height;
-	array_size = copy.array_size;
-	points = new FVector2D[array_size];
-	memcpy(points, copy.points, array_size * sizeof(FVector2D));
-}
-
-GridNoise::~GridNoise()
-{
-	if (points != nullptr)
-	{
-		delete[] points;
-	}
+	Points = copy.Points;
 }
 
 inline FVector2D GridNoise::getPoint(unsigned x, unsigned y) const
 {
-	return points[x + y * width];
+	return Points[x + y * width];
 }
 
 inline FVector2D GridNoise::getNearest(FVector2D location) const
@@ -653,19 +654,19 @@ inline FVector2D GridNoise::getNearest(FVector2D location) const
 	// Check each grid cell surrounding the cell containing to current point
 	for (unsigned y = 0; y < 3; ++y)
 	{
-		long offset = (Y + y) * width;
+		int32 offset = (Y + y) * width;
 		for (unsigned x = 0; x < 3; ++x)
 		{
 			// Get the cell's location in the point array
-			long cell = (X + x) + offset;
-			if (cell > -1 && cell < (long)array_size)
+			int32 cell = (X + x) + offset;
+			if (cell > -1 && cell < Points.Num())
 			{
 				// Check the distance to the point
-				float dist = distance2D(location, points[cell]);
+				float dist = distance2D(location, Points[cell]);
 				if (dist < nearest_distance)
 				{
 					nearest_distance = dist;
-					nearest = points[cell];
+					nearest = Points[cell];
 				}
 			}
 		}
@@ -704,4 +705,9 @@ float GridNoise::worley(float x, float y) const
 	float value = distance2D(loc, nearest) - 1.0f;
 
 	return std::min(1.0f, value);
+}
+
+const TArray<FVector2D>& GridNoise::getPoints()
+{
+	return Points;
 }

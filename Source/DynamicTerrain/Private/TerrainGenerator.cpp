@@ -1,12 +1,43 @@
 #include "TerrainGenerator.h"
+#include "Terrain.h"
 #include "TerrainAlgorithms.h"
 
 #include <chrono>
 
 /// Map Generator Functions ///
 
+void UMapGenerator::NewSeed()
+{
+	Seed = (uint32)std::chrono::steady_clock::now().time_since_epoch().count();
+}
+
+void UMapGenerator::SetSeed(int32 NewSeed)
+{
+	Seed = (uint32)NewSeed;
+}
+
 void UMapGenerator::Flat(float Height)
 {
+	MapFlat(Height);
+}
+
+void UMapGenerator::Plasma(int32 Scale, int32 Foliage, float MaxHeight)
+{
+	MapPlasma(Scale, MaxHeight);
+	FoliageUniform(Foliage, Foliage);
+}
+
+void UMapGenerator::Perlin(int32 Frequency, int32 Octaves, float Persistence, float MaxHeight)
+{
+	MapPerlin(Frequency, Octaves, Persistence, MaxHeight);
+	FoliageRandom(Frequency * 10);
+}
+
+/// Map Generator Components ///
+
+void UMapGenerator::MapFlat(float Height)
+{
+	UHeightMap* Map = Terrain->GetMap();
 	for (int32 i = 0; i < Map->GetWidthX(); ++i)
 	{
 		for (int32 j = 0; j < Map->GetWidthY(); ++j)
@@ -16,7 +47,7 @@ void UMapGenerator::Flat(float Height)
 	}
 }
 
-void UMapGenerator::Plasma(int32 Scale, float MaxHeight)
+void UMapGenerator::MapPlasma(int32 Scale, float MaxHeight)
 {
 	// Safety check for input values
 	if (Scale < 1)
@@ -24,13 +55,13 @@ void UMapGenerator::Plasma(int32 Scale, float MaxHeight)
 		Scale = 1;
 	}
 
-	unsigned seed = (unsigned)std::chrono::steady_clock::now().time_since_epoch().count();
+	UHeightMap* Map = Terrain->GetMap();
 
 	int32 width_x = Map->GetWidthX();
 	int32 width_y = Map->GetWidthY();
 
 	// Create the plasma noise
-	PlasmaNoise noise(Scale, seed);
+	PlasmaNoise noise(Scale, Seed);
 	noise.scale(width_x, width_y);
 
 	// Sample the noise onto the terrain
@@ -43,7 +74,7 @@ void UMapGenerator::Plasma(int32 Scale, float MaxHeight)
 	}
 }
 
-void UMapGenerator::Perlin(int32 Frequency, int32 Octaves, float Persistence, float MaxHeight)
+void UMapGenerator::MapPerlin(int32 Frequency, int32 Octaves, float Persistence, float MaxHeight)
 {
 	// Safety check for input values
 	if (Frequency < 2)
@@ -63,7 +94,7 @@ void UMapGenerator::Perlin(int32 Frequency, int32 Octaves, float Persistence, fl
 		Persistence = 1.0f;
 	}
 
-	unsigned seed = (unsigned)std::chrono::steady_clock::now().time_since_epoch().count();
+	UHeightMap* Map = Terrain->GetMap();
 
 	int32 width_x = Map->GetWidthX();
 	int32 width_y = Map->GetWidthY();
@@ -72,7 +103,7 @@ void UMapGenerator::Perlin(int32 Frequency, int32 Octaves, float Persistence, fl
 	std::vector<GradientNoise> noise;
 	for (int32 i = 1; i <= Octaves; ++i)
 	{
-		noise.push_back(GradientNoise(Frequency * i, Frequency * i, seed++));
+		noise.push_back(GradientNoise(Frequency * i, Frequency * i, Seed++));
 		noise.back().scale(width_x, width_y);
 	}
 
@@ -92,6 +123,72 @@ void UMapGenerator::Perlin(int32 Frequency, int32 Octaves, float Persistence, fl
 			}
 
 			Map->SetHeight(x, y, height * MaxHeight / total);
+		}
+	}
+}
+
+void UMapGenerator::FoliageRandom(uint32 NumPoints)
+{
+	if (NumPoints < 1)
+		return;
+
+	TArray<UInstancedStaticMeshComponent*> components = Terrain->GetInstancedMeshComponents();
+
+	for (int32 i = 0; i < components.Num(); ++i)
+	{
+		// Create noise
+		PointNoise noise(10, 10, NumPoints, Seed);
+		const TArray<FVector2D>& points = noise.getPoints();
+
+		// Add foliage objects
+		for (int32 p = 0; p < points.Num(); ++p)
+		{
+			// Place the foliage object
+			FTransform transform;
+
+			FVector location = Terrain->GetActorLocation();
+			float xoffset = (float)(Terrain->GetMap()->GetWidthX() - 3) / 2.0f * Terrain->GetActorScale3D().X;
+			float yoffset = (float)(Terrain->GetMap()->GetWidthY() - 3) / 2.0f * Terrain->GetActorScale3D().Y;
+			
+			location.X += ((points[p].X / noise.getWidth()) * 2.0f - 1.0f) * xoffset;
+			location.Y += ((points[p].Y / noise.getHeight()) * 2.0f - 1.0f) * yoffset;
+			location.Z = Terrain->GetHeight(location);
+
+			transform.SetLocation(location);
+			components[i]->AddInstance(transform);
+		}
+	}
+}
+
+void UMapGenerator::FoliageUniform(uint32 XPoints, uint32 YPoints)
+{
+	if (XPoints < 1 || YPoints < 1)
+		return;
+
+	TArray<UInstancedStaticMeshComponent*> components = Terrain->GetInstancedMeshComponents();
+
+	for (int32 i = 0; i < components.Num(); ++i)
+	{
+		// Create noise
+		GridNoise noise(XPoints, YPoints, Seed);
+		const TArray<FVector2D>& points = noise.getPoints();
+
+		// Add foliage objects
+		for (int32 p = 0; p < points.Num(); ++p)
+		{
+			// Place the foliage object
+			FTransform transform;
+
+			FVector location = Terrain->GetActorLocation();
+			float xoffset = (float)(Terrain->GetMap()->GetWidthX() - 3) / 2.0f * Terrain->GetActorScale3D().X;
+			float yoffset = (float)(Terrain->GetMap()->GetWidthY() - 3) / 2.0f * Terrain->GetActorScale3D().Y;
+
+			location.X += ((points[p].X / noise.getWidth()) * 2.0f - 1.0f) * xoffset;
+			location.Y += ((points[p].Y / noise.getHeight()) * 2.0f - 1.0f) * yoffset;
+			location.Z = Terrain->GetHeight(location);
+
+			transform.SetLocation(location);
+			components[i]->AddInstance(transform);
 		}
 	}
 }
