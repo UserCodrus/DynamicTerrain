@@ -2,7 +2,11 @@
 #include "Terrain.h"
 #include "TerrainAlgorithms.h"
 
+#include "Kismet/KismetMathLibrary.h"
+
 #include <chrono>
+#include <random>
+#include <limits>
 
 /// Map Generator Functions ///
 
@@ -165,30 +169,36 @@ void UMapGenerator::FoliageUniform(uint32 XPoints, uint32 YPoints)
 	if (XPoints < 1 || YPoints < 1)
 		return;
 
-	TArray<UInstancedStaticMeshComponent*> components = Terrain->GetInstancedMeshComponents();
+	const TArray<UTerrainFoliageGroup*> groups = Terrain->GetFoliageGroups();
+	std::default_random_engine rando(Seed);
+	std::uniform_int_distribution<uint32> dist(0, std::numeric_limits<uint32>::max());
 
-	for (int32 i = 0; i < components.Num(); ++i)
+	for (int32 i = 0; i < groups.Num(); ++i)
 	{
 		// Create noise
-		GridNoise noise(XPoints, YPoints, Seed);
+		PointNoise noise(10, 10, XPoints * YPoints, dist(rando));
 		const TArray<FVector2D>& points = noise.getPoints();
 
 		// Add foliage objects
+		float xoffset = (float)(Terrain->GetMap()->GetWidthX() - 3) / 2.0f * Terrain->GetActorScale3D().X;
+		float yoffset = (float)(Terrain->GetMap()->GetWidthY() - 3) / 2.0f * Terrain->GetActorScale3D().Y;
 		for (int32 p = 0; p < points.Num(); ++p)
 		{
-			// Place the foliage object
-			FTransform transform;
-
+			// Get the location of the foliage in world space
 			FVector location = Terrain->GetActorLocation();
-			float xoffset = (float)(Terrain->GetMap()->GetWidthX() - 3) / 2.0f * Terrain->GetActorScale3D().X;
-			float yoffset = (float)(Terrain->GetMap()->GetWidthY() - 3) / 2.0f * Terrain->GetActorScale3D().Y;
-
 			location.X += ((points[p].X / noise.getWidth()) * 2.0f - 1.0f) * xoffset;
 			location.Y += ((points[p].Y / noise.getHeight()) * 2.0f - 1.0f) * yoffset;
 			location.Z = Terrain->GetHeight(location);
 
-			transform.SetLocation(location);
-			components[i]->AddInstance(transform);
+			// Get the rotation of the foliage
+			FRotator rotation;
+			if (groups[i]->AlignToNormal)
+			{
+				rotation = UKismetMathLibrary::MakeRotFromZ(Terrain->GetNormal(location));
+			}
+
+			// Place the foliage object
+			groups[i]->AddFoliageUnit(Terrain, location, rotation, dist(rando));
 		}
 	}
 }

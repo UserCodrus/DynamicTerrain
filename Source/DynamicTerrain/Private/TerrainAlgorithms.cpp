@@ -1,13 +1,10 @@
 #include "TerrainAlgorithms.h"
 
 #include <random>
-#include <stdexcept>
 
 constexpr float pi = 3.141592f;
 
-///
-/// Utility functions
-///
+/// Utility Functions ///
 
 // Linear interpolation
 inline float lerp(float t, float a, float b)
@@ -34,9 +31,7 @@ inline float fade(float t)
 	return t * t * t * (t * (t * 6 - 15) + 10);
 }
 
-///
-/// Base noise
-///
+/// Base Noise ///
 
 unsigned Noise::getWidth() const
 {
@@ -48,9 +43,7 @@ unsigned Noise::getHeight() const
 	return height;
 }
 
-///
-/// Perlin and simplex noise
-///
+/// Gradient Noise ///
 
 GradientNoise::GradientNoise(unsigned _width, unsigned _height, unsigned seed)
 {
@@ -131,9 +124,7 @@ float GradientNoise::perlin(float x, float y) const
 	);
 }
 
-///
-/// Value & diamond square noise
-///
+/// Value Noise ///
 
 ValueNoise::ValueNoise(unsigned _width, unsigned _height, unsigned seed)
 {
@@ -349,6 +340,8 @@ float ValueNoise::cubic(float x, float y) const
 	return std::min(1.0f, std::max(curp(y, a), -1.0f));
 }
 
+/// Plasma Noise ///
+
 PlasmaNoise::PlasmaNoise(unsigned size, unsigned seed)
 {
 	width = (unsigned)pow(2, size) + 1;
@@ -466,9 +459,7 @@ PlasmaNoise::PlasmaNoise(const PlasmaNoise& copy)
 	memcpy(value, copy.value, width * height * sizeof(float));
 }
 
-///
-/// Random point noise
-///
+/// Random point noise ///
 
 PointNoise::PointNoise(unsigned x_bias, unsigned y_bias, unsigned num_points, unsigned seed)
 {
@@ -481,7 +472,7 @@ PointNoise::PointNoise(unsigned x_bias, unsigned y_bias, unsigned num_points, un
 	std::uniform_real_distribution<float> y_dist(0.0f, (float)height);
 
 	//points = new FVector2D[array_size];
-	Points.SetNumUninitialized(width * height);
+	Points.SetNumUninitialized(num_points);
 	point_grid = new std::vector<FVector2D*>[width * height];
 	for (unsigned i = 0; i < num_points; ++i)
 	{
@@ -490,8 +481,9 @@ PointNoise::PointNoise(unsigned x_bias, unsigned y_bias, unsigned num_points, un
 		// Add the point to the point grid
 		int X = (int)point.X;
 		int Y = (int)point.Y;
+		Points[i] = point;
+
 		unsigned p = X + Y * width;
-		Points[p] = point;
 		point_grid[p].push_back(&point);
 	}
 }
@@ -606,6 +598,8 @@ const TArray<FVector2D>& PointNoise::getPoints()
 {
 	return Points;
 }
+
+/// Grid Aligned Point Noise ///
 
 GridNoise::GridNoise(unsigned _width, unsigned _height, unsigned seed)
 {

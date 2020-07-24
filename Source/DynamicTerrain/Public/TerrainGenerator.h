@@ -1,8 +1,9 @@
 #pragma once
 
+#include "TerrainHeightMap.h"
+
 #include "CoreMinimal.h"
 
-#include "TerrainHeightMap.h"
 #include "TerrainGenerator.generated.h"
 
 class ATerrain;
