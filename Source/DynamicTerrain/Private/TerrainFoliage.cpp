@@ -1,24 +1,75 @@
 #include "TerrainFoliage.h"
 #include "Terrain.h"
+#include "TerrainAlgorithms.h"
 
 #include "Components/InstancedStaticMeshComponent.h"
+#include "Kismet/KismetMathLibrary.h"
 
 #include <random>
+#include <limits>
 
-void UTerrainFoliageGroup::AddFoliageCluster(ATerrain* Terrain, FVector Location, FRotator Rotation, uint32 Seed) const
+void UTerrainFoliageGroup::AddFoliageCluster(ATerrain* Terrain, FVector Location, uint32 Seed) const
 {
+	std::default_random_engine rando(Seed);
+	std::uniform_int_distribution<uint32> random_seed(0, std::numeric_limits<uint32>::max());
 
+	// Get a cluster of points
+	std::uniform_int_distribution<uint32> cluster(ClusterMin, ClusterMax);
+	RandomCirclePointNoise noise(Radius, cluster(rando), random_seed(rando));
+
+	// Add meshes at each point generated
+	const TArray<FVector2D>& points = noise.getPoints();
+	UInstancedStaticMeshComponent* component = nullptr;
+	for (int32 i = 0; i < points.Num(); ++i)
+	{
+		// Pick a new mesh
+		if (!MatchClusters || component == nullptr)
+		{
+			component = GetRandomComponent(Terrain, random_seed(rando));
+		}
+
+		// Set the location
+		FVector location = Location;
+		location.X += points[i].X;
+		location.Y += points[i].Y;
+		location.Z = Terrain->GetHeight(location);
+		
+		// Set the rotation
+		FRotator rotation;
+		if (AlignToNormal)
+		{
+			rotation = UKismetMathLibrary::MakeRotFromZ(Terrain->GetNormal(location));
+		}
+
+		// Add a mesh
+		FTransform transform;
+		transform.SetLocation(location);
+		transform.SetRotation(rotation.Quaternion());
+		component->AddInstance(transform);
+	}
 }
 
-void UTerrainFoliageGroup::AddFoliageUnit(ATerrain* Terrain, FVector Location, FRotator Rotation, uint32 Seed) const
+void UTerrainFoliageGroup::AddFoliageUnit(ATerrain* Terrain, FVector Location, uint32 Seed) const
 {
 	UInstancedStaticMeshComponent* components = GetRandomComponent(Terrain, Seed);
 
 	if (components != nullptr)
 	{
+		// Set the rotation
+		FVector location = Location;
+		location.Z = Terrain->GetHeight(location);
+		
+		// Set the rotation
+		FRotator rotation;
+		if (AlignToNormal)
+		{
+			rotation = UKismetMathLibrary::MakeRotFromZ(Terrain->GetNormal(location));
+		}
+
+		// Add a mesh
 		FTransform transform;
-		transform.SetLocation(Location);
-		transform.SetRotation(Rotation.Quaternion());
+		transform.SetLocation(location);
+		transform.SetRotation(rotation.Quaternion());
 		components->AddInstance(transform);
 	}
 }

@@ -34,6 +34,9 @@ public:
 	// The maximum number of meshes in each cluster
 	UPROPERTY(EditAnywhere)
 		uint32 ClusterMax = 1;
+	// The radius of clusters in world space units
+	UPROPERTY(EditAnywhere)
+		float Radius = 500.0f;
 	// If true each mesh in a given cluster will all be the same, otherwise they will be random
 	UPROPERTY(EditAnywhere)
 		bool MatchClusters = true;
@@ -46,9 +49,9 @@ public:
 		bool RandomRotation = true;
 
 	// Create a cluster of foliage at the designated location in world space
-	void AddFoliageCluster(ATerrain* Terrain, FVector Location, FRotator Rotation, uint32 Seed) const;
+	void AddFoliageCluster(ATerrain* Terrain, FVector Location, uint32 Seed) const;
 	// Create a single piece of foliage at the designated location in world space
-	void AddFoliageUnit(ATerrain* Terrain, FVector Location, FRotator Rotation, uint32 Seed) const;
+	void AddFoliageUnit(ATerrain* Terrain, FVector Location, uint32 Seed) const;
 
 protected:
 	// Get instanced static mesh components from a terrain matching this foliage group

@@ -141,7 +141,7 @@ void UMapGenerator::FoliageRandom(uint32 NumPoints)
 	for (int32 i = 0; i < components.Num(); ++i)
 	{
 		// Create noise
-		PointNoise noise(10, 10, NumPoints, Seed);
+		ScatteredPointNoise noise(10, 10, NumPoints, Seed);
 		const TArray<FVector2D>& points = noise.getPoints();
 
 		// Add foliage objects
@@ -171,12 +171,12 @@ void UMapGenerator::FoliageUniform(uint32 XPoints, uint32 YPoints)
 
 	const TArray<UTerrainFoliageGroup*> groups = Terrain->GetFoliageGroups();
 	std::default_random_engine rando(Seed);
-	std::uniform_int_distribution<uint32> dist(0, std::numeric_limits<uint32>::max());
+	std::uniform_int_distribution<uint32> random_seed(0, std::numeric_limits<uint32>::max());
 
 	for (int32 i = 0; i < groups.Num(); ++i)
 	{
 		// Create noise
-		PointNoise noise(10, 10, XPoints * YPoints, dist(rando));
+		ScatteredPointNoise noise(10, 10, XPoints * YPoints, random_seed(rando));
 		const TArray<FVector2D>& points = noise.getPoints();
 
 		// Add foliage objects
@@ -188,17 +188,9 @@ void UMapGenerator::FoliageUniform(uint32 XPoints, uint32 YPoints)
 			FVector location = Terrain->GetActorLocation();
 			location.X += ((points[p].X / noise.getWidth()) * 2.0f - 1.0f) * xoffset;
 			location.Y += ((points[p].Y / noise.getHeight()) * 2.0f - 1.0f) * yoffset;
-			location.Z = Terrain->GetHeight(location);
-
-			// Get the rotation of the foliage
-			FRotator rotation;
-			if (groups[i]->AlignToNormal)
-			{
-				rotation = UKismetMathLibrary::MakeRotFromZ(Terrain->GetNormal(location));
-			}
 
 			// Place the foliage object
-			groups[i]->AddFoliageUnit(Terrain, location, rotation, dist(rando));
+			groups[i]->AddFoliageCluster(Terrain, location, random_seed(rando));
 		}
 	}
 }
