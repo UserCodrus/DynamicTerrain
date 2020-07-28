@@ -36,6 +36,7 @@ public:
 	TSharedPtr<FUICommandInfo> ManageMode;
 	TSharedPtr<FUICommandInfo> GenerateMode;
 	TSharedPtr<FUICommandInfo> SculptMode;
+	TSharedPtr<FUICommandInfo> FoliageMode;
 
 	TSharedPtr<FUICommandInfo> SculptTool;
 	TSharedPtr<FUICommandInfo> SmoothTool;
@@ -69,6 +70,8 @@ public:
 	static FReply CreateButton();
 	// Called when the generate button is clicked
 	static FReply GenerateButton();
+	// Called when the change foliage button is clicked
+	static FReply FoliageButton();
 
 protected:
 	// Get the editor mode using these details

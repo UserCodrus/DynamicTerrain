@@ -4,6 +4,7 @@
 #include "TerrainGenerator.h"
 #include "TerrainTools.h"
 #include "TerrainBrushDecal.h"
+#include "TerrainFoliage.h"
 
 #include "EdMode.h"
 #include "EditorModeRegistry.h"
@@ -15,6 +16,7 @@ enum class TerrainModeID
 	MANAGE,
 	GENERATE,
 	SCULPT,
+	FOLIAGE,
 	NUM
 };
 
@@ -88,6 +90,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Brush Settings")
 		float Strength = 1.0f;
 
+	UPROPERTY(EditAnywhere, Category = "Foliage Settings")
+		TArray<UTerrainFoliageGroup*> Foliage;
+
 	UPROPERTY(EditAnywhere, Category = "Generator")
 		FString FunctionName;
 	UPROPERTY(EditAnywhere, Category = "Generator")
@@ -146,6 +151,8 @@ public:
 	void ResizeTerrain();
 	// Create a new terrain
 	void CreateTerrain();
+	// Change the foliage for a terrain
+	void ChangeFoliage();
 	// Select a terrain object
 	void SelectTerrain(ATerrain* Terrain);
 

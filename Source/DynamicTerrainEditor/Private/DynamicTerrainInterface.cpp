@@ -57,6 +57,7 @@ void FDynamicTerrainEditorCommands::RegisterCommands()
 	UI_COMMAND(ManageMode, "Manage Mode", "Select and resize terrain objects", EUserInterfaceActionType::RadioButton, FInputChord());
 	UI_COMMAND(GenerateMode, "Generate Mode", "Generate new terrain", EUserInterfaceActionType::RadioButton, FInputChord());
 	UI_COMMAND(SculptMode, "Sculpt Mode", "Sculpt the terrain", EUserInterfaceActionType::RadioButton, FInputChord());
+	UI_COMMAND(FoliageMode, "Foliage Mode", "Change terrain foliage", EUserInterfaceActionType::RadioButton, FInputChord());
 
 	UI_COMMAND(SculptTool, "Sculpt Tool", "Raise or lower the terrain", EUserInterfaceActionType::RadioButton, FInputChord());
 	UI_COMMAND(SmoothTool, "Smooth Tool", "Smooth bumpy terrain", EUserInterfaceActionType::RadioButton, FInputChord());
@@ -75,6 +76,7 @@ void FDynamicTerrainEditorCommands::MapCommands(FDynamicTerrainModeToolkit* Tool
 	MapCommandToMode(Toolkit, ManageMode, TerrainModeID::MANAGE);
 	MapCommandToMode(Toolkit, GenerateMode, TerrainModeID::GENERATE);
 	MapCommandToMode(Toolkit, SculptMode, TerrainModeID::SCULPT);
+	MapCommandToMode(Toolkit, FoliageMode, TerrainModeID::FOLIAGE);
 
 	MapCommandToTool(Toolkit, SculptTool, TerrainToolID::SCULPT);
 	MapCommandToTool(Toolkit, SmoothTool, TerrainToolID::SMOOTH);
@@ -168,6 +170,7 @@ void FDynamicTerrainDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilde
 			}
 
 			// Hide categories
+			DetailBuilder.EditCategory("Foliage Settings", FText::GetEmpty(), ECategoryPriority::Important).SetCategoryVisibility(false);
 			DetailBuilder.EditCategory("Brush Settings", FText::GetEmpty(), ECategoryPriority::Important).SetCategoryVisibility(false);
 		}
 		else if (current_mode == TerrainModeID::CREATE)
@@ -180,6 +183,7 @@ void FDynamicTerrainDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilde
 				];
 
 			// Hide categories
+			DetailBuilder.EditCategory("Foliage Settings", FText::GetEmpty(), ECategoryPriority::Important).SetCategoryVisibility(false);
 			DetailBuilder.EditCategory("Brush Settings", FText::GetEmpty(), ECategoryPriority::Important).SetCategoryVisibility(false);
 		}
 		else if (current_mode == TerrainModeID::GENERATE)
@@ -222,6 +226,7 @@ void FDynamicTerrainDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilde
 				];
 
 			// Hide categories
+			DetailBuilder.EditCategory("Foliage Settings", FText::GetEmpty(), ECategoryPriority::Important).SetCategoryVisibility(false);
 			DetailBuilder.EditCategory("Brush Settings", FText::GetEmpty(), ECategoryPriority::Important).SetCategoryVisibility(false);
 			DetailBuilder.EditCategory("Terrain Settings", FText::GetEmpty(), ECategoryPriority::Important).SetCategoryVisibility(false);
 		}
@@ -282,6 +287,20 @@ void FDynamicTerrainDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilde
 				];
 
 			// Hide categories
+			DetailBuilder.EditCategory("Foliage Settings", FText::GetEmpty(), ECategoryPriority::Important).SetCategoryVisibility(false);
+			DetailBuilder.EditCategory("Terrain Settings", FText::GetEmpty(), ECategoryPriority::Important).SetCategoryVisibility(false);
+		}
+		else if (current_mode == TerrainModeID::FOLIAGE)
+		{
+			// Add the foliage widget
+			IDetailCategoryBuilder& category_foliage = DetailBuilder.EditCategory("Foliage Settings", FText::GetEmpty(), ECategoryPriority::Default);
+			category_foliage.AddCustomRow(FText::GetEmpty())
+				[
+					SNew(SButton).Text(LOCTEXT("ChangeFoliageButton", "Change")).OnClicked_Static(&FDynamicTerrainDetails::FoliageButton)
+				];
+
+			// Hide categories
+			DetailBuilder.EditCategory("Brush Settings", FText::GetEmpty(), ECategoryPriority::Important).SetCategoryVisibility(false);
 			DetailBuilder.EditCategory("Terrain Settings", FText::GetEmpty(), ECategoryPriority::Important).SetCategoryVisibility(false);
 		}
 
@@ -306,7 +325,12 @@ FReply FDynamicTerrainDetails::CreateButton()
 FReply FDynamicTerrainDetails::GenerateButton()
 {
 	GetMode()->ProcessGenerateCommand();
+	return FReply::Handled();
+}
 
+FReply FDynamicTerrainDetails::FoliageButton()
+{
+	GetMode()->ChangeFoliage();
 	return FReply::Handled();
 }
 

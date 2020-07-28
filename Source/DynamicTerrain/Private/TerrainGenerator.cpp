@@ -169,7 +169,8 @@ void UMapGenerator::FoliageUniform(uint32 XPoints, uint32 YPoints)
 	if (XPoints < 1 || YPoints < 1)
 		return;
 
-	const TArray<UTerrainFoliageGroup*> groups = Terrain->GetFoliageGroups();
+	TArray<UTerrainFoliageGroup*> groups;
+	Terrain->GetFoliageGroups(groups);
 	std::default_random_engine rando(Seed);
 	std::uniform_int_distribution<uint32> random_seed(0, std::numeric_limits<uint32>::max());
 

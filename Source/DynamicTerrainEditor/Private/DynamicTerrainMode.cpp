@@ -54,6 +54,7 @@ FDynamicTerrainMode::FDynamicTerrainMode()
 	Modes[(int)TerrainModeID::SCULPT] = new FDynamicTerrainToolMode("Sculpt", TerrainModeID::SCULPT);
 	Modes[(int)TerrainModeID::MANAGE] = new FDynamicTerrainToolMode("Manage", TerrainModeID::MANAGE);
 	Modes[(int)TerrainModeID::GENERATE] = new FDynamicTerrainToolMode("Generate", TerrainModeID::GENERATE);
+	Modes[(int)TerrainModeID::FOLIAGE] = new FDynamicTerrainToolMode("Foliage", TerrainModeID::FOLIAGE);
 
 	CurrentMode = Modes[1];
 
@@ -424,7 +425,7 @@ void FDynamicTerrainMode::SetMode(TerrainModeID ModeID)
 			{
 				Brush->ShowBrush(false);
 
-				if (ModeID == TerrainModeID::MANAGE)
+				if (ModeID == TerrainModeID::MANAGE || ModeID == TerrainModeID::FOLIAGE)
 				{
 					ModeUpdate();
 				}
@@ -464,13 +465,21 @@ void FDynamicTerrainMode::ModeUpdate()
 {
 	if (SelectedTerrain != nullptr && CurrentMode->ModeID != TerrainModeID::CREATE)
 	{
-		// Copy the current terrain's attributes to the settings panel
-		Settings->ComponentSize = SelectedTerrain->GetComponentSize();
-		Settings->WidthX = SelectedTerrain->GetXWidth();
-		Settings->WidthY = SelectedTerrain->GetYWidth();
-		Settings->UVTiling = SelectedTerrain->GetTiling();
-		Settings->LODLevels = SelectedTerrain->GetNumLODs();
-		Settings->LODScale = SelectedTerrain->GetLODDistanceScale();
+		if (CurrentMode->ModeID == TerrainModeID::MANAGE)
+		{
+			// Copy the current terrain's attributes to the settings panel
+			Settings->ComponentSize = SelectedTerrain->GetComponentSize();
+			Settings->WidthX = SelectedTerrain->GetXWidth();
+			Settings->WidthY = SelectedTerrain->GetYWidth();
+			Settings->UVTiling = SelectedTerrain->GetTiling();
+			Settings->LODLevels = SelectedTerrain->GetNumLODs();
+			Settings->LODScale = SelectedTerrain->GetLODDistanceScale();
+		}
+		else if (CurrentMode->ModeID == TerrainModeID::FOLIAGE)
+		{
+			// Copy the foliage groups from the selected terrain to the settings panel
+			SelectedTerrain->GetFoliageGroups(Settings->Foliage);
+		}
 	}
 	else
 	{
@@ -528,6 +537,15 @@ void FDynamicTerrainMode::CreateTerrain()
 	SelectTerrain(new_terrain);
 
 	GEditor->EndTransaction();
+}
+
+void FDynamicTerrainMode::ChangeFoliage()
+{
+	if (SelectedTerrain != nullptr)
+	{
+		// Change the foliage on the terrain
+		SelectedTerrain->SetFoliageGroups(Settings->Foliage);
+	}
 }
 
 void FDynamicTerrainMode::SelectTerrain(ATerrain* Terrain)
