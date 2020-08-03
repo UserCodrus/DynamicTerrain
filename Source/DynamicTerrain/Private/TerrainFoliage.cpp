@@ -25,7 +25,7 @@ void UTerrainFoliageGroup::AddFoliageCluster(ATerrain* Terrain, FVector Location
 	RandomCirclePointNoise noise(Radius, cluster(rando), random_seed(rando));
 
 	// Add meshes at each point generated
-	const TArray<FVector2D>& points = noise.getPoints();
+	const TArray<FVector2D>& points = noise.GetPoints();
 	UInstancedStaticMeshComponent* component = nullptr;
 	for (int32 i = 0; i < points.Num(); ++i)
 	{
