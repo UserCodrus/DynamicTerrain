@@ -22,7 +22,7 @@ void UTerrainFoliageGroup::AddFoliageCluster(ATerrain* Terrain, FVector Location
 	std::default_random_engine rando(Seed);
 	std::uniform_int_distribution<uint32> random_seed(0, std::numeric_limits<uint32>::max());
 	std::uniform_int_distribution<uint32> cluster(ClusterMin, ClusterMax);
-	RandomCirclePointNoise noise(Radius, cluster(rando), random_seed(rando));
+	PointNoise noise(Radius, cluster(rando), random_seed(rando));
 
 	// Add meshes at each point generated
 	const TArray<FVector2D>& points = noise.GetPoints();

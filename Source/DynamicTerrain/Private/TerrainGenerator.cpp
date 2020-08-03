@@ -136,30 +136,29 @@ void UMapGenerator::FoliageRandom(uint32 NumPoints)
 	if (NumPoints < 1)
 		return;
 
-	TArray<UInstancedStaticMeshComponent*> components = Terrain->GetInstancedMeshComponents();
+	TArray<UTerrainFoliageGroup*> groups;
+	Terrain->GetFoliageGroups(groups);
+	std::default_random_engine rando(Seed);
+	std::uniform_int_distribution<uint32> random_seed(0, std::numeric_limits<uint32>::max());
 
-	for (int32 i = 0; i < components.Num(); ++i)
+	for (int32 i = 0; i < groups.Num(); ++i)
 	{
 		// Create noise
-		ScatteredPointNoise noise(10, 10, NumPoints, Seed);
+		PointNoise noise(10, 10, NumPoints, random_seed(rando));
 		const TArray<FVector2D>& points = noise.GetPoints();
 
 		// Add foliage objects
+		float xoffset = (float)(Terrain->GetMap()->GetWidthX() - 3) / 2.0f * Terrain->GetActorScale3D().X;
+		float yoffset = (float)(Terrain->GetMap()->GetWidthY() - 3) / 2.0f * Terrain->GetActorScale3D().Y;
 		for (int32 p = 0; p < points.Num(); ++p)
 		{
-			// Place the foliage object
-			FTransform transform;
-
+			// Get the location of the foliage in world space
 			FVector location = Terrain->GetActorLocation();
-			float xoffset = (float)(Terrain->GetMap()->GetWidthX() - 3) / 2.0f * Terrain->GetActorScale3D().X;
-			float yoffset = (float)(Terrain->GetMap()->GetWidthY() - 3) / 2.0f * Terrain->GetActorScale3D().Y;
-			
 			location.X += ((points[p].X / noise.GetWidth()) * 2.0f - 1.0f) * xoffset;
 			location.Y += ((points[p].Y / noise.GetHeight()) * 2.0f - 1.0f) * yoffset;
-			location.Z = Terrain->GetHeight(location);
 
-			transform.SetLocation(location);
-			components[i]->AddInstance(transform);
+			// Place the foliage object
+			groups[i]->AddFoliageCluster(Terrain, location, random_seed(rando));
 		}
 	}
 }
@@ -177,7 +176,7 @@ void UMapGenerator::FoliageUniform(uint32 XPoints, uint32 YPoints)
 	for (int32 i = 0; i < groups.Num(); ++i)
 	{
 		// Create noise
-		ScatteredPointNoise noise(10, 10, XPoints * YPoints, random_seed(rando));
+		UniformPointNoise noise(XPoints, YPoints, random_seed(rando));
 		const TArray<FVector2D>& points = noise.GetPoints();
 
 		// Add foliage objects

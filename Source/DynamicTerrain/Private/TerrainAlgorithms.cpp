@@ -461,7 +461,7 @@ PlasmaNoise::PlasmaNoise(const PlasmaNoise& Copy)
 
 /// Random Point Noise ///
 
-PointNoise::PointNoise(uint32 XWidth, uint32 YWidth, uint32 NumPoints, uint32 Seed)
+PointNoise::PointNoise(uint32 XWidth, uint32 YWidth, uint32 NumPoints, uint32 Seed, bool PreSort)
 {
 	Width = XWidth;
 	Height = YWidth;
@@ -472,20 +472,39 @@ PointNoise::PointNoise(uint32 XWidth, uint32 YWidth, uint32 NumPoints, uint32 Se
 	std::uniform_real_distribution<float> y_dist(0.0f, (float)Height);
 
 	Points.SetNumUninitialized(NumPoints);
-	for (unsigned i = 0; i < NumPoints; ++i)
+	for (uint32 i = 0; i < NumPoints; ++i)
 	{
-		FVector2D point(x_dist(rando), y_dist(rando));
-		Points[i] = point;
+		// Create a point and sort it in the point grid
+		Points[i] = FVector2D(x_dist(rando), y_dist(rando));
 	}
+
+	if (PreSort)
+		SortPoints();
 }
 
-PointNoise::PointNoise(const PointNoise& Copy)
+PointNoise::PointNoise(uint32 Radius, uint32 NumPoints, uint32 Seed, bool PreSort)
 {
-	Width = Copy.Width;
-	Height = Copy.Height;
+	Width = Radius * 2;
+	Height = Width;
 
-	// Copy points over
-	Points = Copy.Points;
+	// Generate random x and y values within a circle
+	std::default_random_engine rando(Seed);
+	std::uniform_real_distribution<float> angle(0.0f, 360.0f);
+	std::uniform_real_distribution<float> dist;
+
+	Points.SetNumUninitialized(NumPoints);
+	for (uint32 i = 0; i < NumPoints; ++i)
+	{
+		// Get a random angle and distance
+		float a = angle(rando);
+		float d = Radius * FMath::Sqrt(dist(rando));
+
+		// Create a point in the circle and sort it into the point grid
+		Points[i] = FVector2D(d * FMath::Cos(a), d * FMath::Sin(a));
+	}
+
+	if (PreSort)
+		SortPoints();
 }
 
 void PointNoise::Scale(uint32 SampleWidth, uint32 SampleHeight)
@@ -496,22 +515,85 @@ void PointNoise::Scale(uint32 SampleWidth, uint32 SampleHeight)
 
 FVector2D PointNoise::GetNearest(FVector2D Location) const
 {
+	if (PointGrid.Num() == 0)
+		return FVector2D();
+
+	// Get the grid cell to the top left of the current point
+	int32 X = (int32)Location.X - 1;
+	int32 Y = (int32)Location.Y - 1;
+
 	// The closest point found so far
 	FVector2D nearest(0.0f, 0.0f);
 	// The distance to the closest point
-	float nearest_distance = Width * Width;
+	float nearest_distance = 8.0f;
 
-	for (int32 i = 0; i < Points.Num(); ++i)
+	// Check each grid cell surrounding the cell containing to current point
+	for (uint32 y = 0; y < 3; ++y)
 	{
-		float dist = FVector2D::DistSquared(Location, Points[i]);
-		if (dist < nearest_distance)
+		int32 offset_y = (Y + y) * Width;
+		for (uint32 x = 0; x < 3; ++x)
 		{
-			nearest = Points[i];
-			nearest_distance = dist;
+			// Get the current cell's location in the cell array
+			int32 cell = (X + x) + offset_y;
+			if (cell > -1 && cell < Points.Num())
+			{
+				// Check each point in the cell
+				const TArray<FVector2D*>& point_data = PointGrid[cell];
+				for (int32 i = 0; i < point_data.Num(); ++i)
+				{
+					// Check the distance to the point
+					float dist = FVector2D::DistSquared(Location, *point_data[i]);
+					if (dist < nearest_distance)
+					{
+						nearest_distance = dist;
+						nearest = *point_data[i];
+					}
+				}
+			}
 		}
 	}
 
 	return nearest;
+}
+
+float PointNoise::GetNearestDistance(FVector2D Location) const
+{
+	if (PointGrid.Num() == 0)
+		return 0.0f;
+
+	// Get the grid cell to the top left of the current point
+	int32 X = (int32)Location.X - 1;
+	int32 Y = (int32)Location.Y - 1;
+
+	// The distance to the closest point
+	float nearest_distance = 8.0f;
+
+	// Check each grid cell surrounding the cell containing to current point
+	for (uint32 y = 0; y < 3; ++y)
+	{
+		int32 offset_y = (Y + y) * Width;
+		for (uint32 x = 0; x < 3; ++x)
+		{
+			// Get the current cell's location in the cell array
+			int32 cell = (X + x) + offset_y;
+			if (cell > -1 && cell < Points.Num())
+			{
+				// Check each point in the cell
+				const TArray<FVector2D*>& point_data = PointGrid[cell];
+				for (int32 i = 0; i < point_data.Num(); ++i)
+				{
+					// Check the distance to the point
+					float distance = FVector2D::DistSquared(Location, *point_data[i]);
+					if (distance < nearest_distance)
+					{
+						nearest_distance = distance;
+					}
+				}
+			}
+		}
+	}
+
+	return FMath::Sqrt(nearest_distance);
 }
 
 float PointNoise::Dot(float X, float Y) const
@@ -522,12 +604,10 @@ float PointNoise::Dot(float X, float Y) const
 
 	// Get the nearest neighbor to the current point
 	FVector2D loc(X, Y);
-	FVector2D nearest = GetNearest(loc);
+	float nearest = GetNearestDistance(loc);
 
 	// Calculate the noise value based on distance
-	float value = 1.0f - FVector2D::Distance(loc, nearest) * 4;
-
-	return std::max(-1.0f, value);
+	return std::max(0.0f, 1.0f - nearest * 4);
 }
 
 float PointNoise::Worley(float X, float Y) const
@@ -538,12 +618,10 @@ float PointNoise::Worley(float X, float Y) const
 
 	// Get the nearest neighbor to the current point
 	FVector2D loc(X, Y);
-	FVector2D nearest = GetNearest(loc);
+	float nearest = GetNearestDistance(loc);
 
 	// Calculate the noise value based on distance
-	float value = FVector2D::Distance(loc, nearest) * 2 - 1.0f;
-
-	return std::min(1.0f, value);
+	return std::min(1.0f, nearest);
 }
 
 const TArray<FVector2D>& PointNoise::GetPoints()
@@ -551,163 +629,13 @@ const TArray<FVector2D>& PointNoise::GetPoints()
 	return Points;
 }
 
-/// Circular Point Noise ///
-
-RandomCirclePointNoise::RandomCirclePointNoise(uint32 Radius, uint32 NumPoints, uint32 Seed)
+void PointNoise::SortPoints()
 {
-	std::default_random_engine rando(Seed);
-	std::uniform_real_distribution<float> angle(0.0f, 360.0f);
-	std::uniform_real_distribution<float> dist;
-
-	for (unsigned i = 0; i < NumPoints; ++i)
+	PointGrid.SetNum(Width * Height);
+	for (int32 i = 0; i < Points.Num(); ++i)
 	{
-		// Get a random angle and distance
-		float a = angle(rando);
-		float d = Radius * FMath::Sqrt(dist(rando));
-
-		// Create a point in the circle
-		Points.Add(FVector2D(d * FMath::Cos(a), d * FMath::Sin(a)));
+		PointGrid[(int32)Points[i].X + (int32)Points[i].Y * Width].Add(&Points[i]);
 	}
-}
-
-/// Scattered Point Noise ///
-
-ScatteredPointNoise::ScatteredPointNoise(uint32 XWidth, uint32 YWidth, uint32 NumPoints, uint32 Seed)
-{
-	Width = XWidth;
-	Height = YWidth;
-
-	// Generate points using random x and y values
-	std::default_random_engine rando(Seed);
-	std::uniform_real_distribution<float> x_dist(0.0f, (float)Width);
-	std::uniform_real_distribution<float> y_dist(0.0f, (float)Height);
-
-	//points = new FVector2D[array_size];
-	Points.SetNumUninitialized(NumPoints);
-	PointGrid = new std::vector<FVector2D*>[Width * Height];
-	for (unsigned i = 0; i < NumPoints; ++i)
-	{
-		FVector2D point(x_dist(rando), y_dist(rando));
-
-		// Add the point to the point grid
-		int X = (int)point.X;
-		int Y = (int)point.Y;
-		Points[i] = point;
-
-		unsigned p = X + Y * Width;
-		PointGrid[p].push_back(&point);
-	}
-}
-
-ScatteredPointNoise::ScatteredPointNoise(const ScatteredPointNoise& Copy)
-{
-	Width = Copy.Width;
-	Height = Copy.Height;
-
-	PointGrid = new std::vector<FVector2D*>[Copy.Points.Num()];
-
-	// Copy points over
-	Points = Copy.Points;
-
-	// Copy the sorting grid
-	for (unsigned i = 0; i < Width * Height; ++i)
-	{
-		for (unsigned j = 0; j < Copy.PointGrid[i].size(); ++j)
-		{
-			PointGrid[i].push_back(Copy.PointGrid[i][j]);
-		}
-	}
-}
-
-ScatteredPointNoise::~ScatteredPointNoise()
-{
-	if (PointGrid != nullptr)
-	{
-		delete[] PointGrid;
-	}
-}
-
-void ScatteredPointNoise::Scale(uint32 SampleWidth, uint32 SampleHeight)
-{
-	ScaleX = (float)Width / SampleWidth;
-	ScaleY = (float)Height / SampleHeight;
-}
-
-FVector2D ScatteredPointNoise::GetNearest(FVector2D Location) const
-{
-	// Get the grid location to the top left of the current point
-	int X = (int)Location.X - 1;
-	int Y = (int)Location.Y - 1;
-
-	// The closest point found so far
-	FVector2D nearest(0.0f, 0.0f);
-	// The distance to the closest point
-	float nearest_distance = (float)Width;
-
-	// Check each grid cell surrounding the cell containing to current point
-	for (unsigned y = 0; y < 3; ++y)
-	{
-		int32 offset = (Y + y) * Width;
-		for (unsigned x = 0; x < 3; ++x)
-		{
-			// Get the cell's location in the points array
-			int32 cell = (X + x) + offset;
-			if (cell > -1 && cell < Points.Num())
-			{
-				// Check each point in the cell
-				std::vector<FVector2D*>* point_data = &PointGrid[cell];
-				for (unsigned i = 0; i < point_data->size(); ++i)
-				{
-					// Check the distance to the point
-					float dist = FVector2D::DistSquared(Location, *point_data->at(i));
-					if (dist < nearest_distance)
-					{
-						nearest_distance = dist;
-						nearest = *point_data->at(i);
-					}
-				}
-			}
-		}
-	}
-
-	return nearest;
-}
-
-float ScatteredPointNoise::Dot(float X, float Y) const
-{
-	// Scale noise values
-	X *= ScaleX;
-	Y *= ScaleY;
-
-	// Get the nearest neighbor to the current point
-	FVector2D loc(X, Y);
-	FVector2D nearest = GetNearest(loc);
-
-	// Calculate the noise value based on distance
-	float value = 1.0f - FVector2D::Distance(loc, nearest) * 4;
-
-	return std::max(-1.0f, value);
-}
-
-float ScatteredPointNoise::Worley(float X, float Y) const
-{
-	// Scale noise values
-	X *= ScaleX;
-	Y *= ScaleY;
-
-	// Get the nearest neighbor to the current point
-	FVector2D loc(X, Y);
-	FVector2D nearest = GetNearest(loc);
-
-	// Calculate the noise value based on distance
-	float value = FVector2D::Distance(loc, nearest) * 2 - 1.0f;
-
-	return std::min(1.0f, value);
-}
-
-const TArray<FVector2D>& ScatteredPointNoise::GetPoints()
-{
-	return Points;
 }
 
 /// Grid Aligned Point Noise ///
@@ -722,22 +650,15 @@ UniformPointNoise::UniformPointNoise(uint32 NewWidth, uint32 NewHeight, uint32 S
 	std::uniform_real_distribution<float> dist(0.0f, 1.0f);
 
 	Points.SetNumUninitialized(Width * Height);
-	for (unsigned y = 0; y < Height; ++y)
+	for (uint32 y = 0; y < Height; ++y)
 	{
-		for (unsigned x = 0; x < Width; ++x)
+		for (uint32 x = 0; x < Width; ++x)
 		{
-			unsigned loc = x + y * Width;
+			uint32 loc = x + y * Width;
 			Points[loc].X = x + dist(rando);
 			Points[loc].Y = y + dist(rando);
 		}
 	}
-}
-
-UniformPointNoise::UniformPointNoise(const UniformPointNoise& Copy)
-{
-	Width = Copy.Width;
-	Height = Copy.Height;
-	Points = Copy.Points;
 }
 
 inline FVector2D UniformPointNoise::GetPoint(uint32 X, uint32 Y) const
@@ -748,22 +669,22 @@ inline FVector2D UniformPointNoise::GetPoint(uint32 X, uint32 Y) const
 inline FVector2D UniformPointNoise::GetNearest(FVector2D Location) const
 {
 	// Get the grid location to the top left of the current point
-	int X = (int)Location.X - 1;
-	int Y = (int)Location.Y - 1;
+	int32 X = (int32)Location.X - 1;
+	int32 Y = (int32)Location.Y - 1;
 
 	// The closest point found so far
 	FVector2D nearest(0.0f, 0.0f);
 	// The distance to the closest point
-	float nearest_distance = (float)Width;
+	float nearest_distance = 8.0f;
 
 	// Check each grid cell surrounding the cell containing to current point
-	for (unsigned y = 0; y < 3; ++y)
+	for (uint32 y = 0; y < 3; ++y)
 	{
-		int32 offset = (Y + y) * Width;
-		for (unsigned x = 0; x < 3; ++x)
+		int32 offset_y = (Y + y) * Width;
+		for (uint32 x = 0; x < 3; ++x)
 		{
 			// Get the cell's location in the point array
-			int32 cell = (X + x) + offset;
+			int32 cell = (X + x) + offset_y;
 			if (cell > -1 && cell < Points.Num())
 			{
 				// Check the distance to the point
@@ -780,6 +701,38 @@ inline FVector2D UniformPointNoise::GetNearest(FVector2D Location) const
 	return nearest;
 }
 
+float UniformPointNoise::GetNearestDistance(FVector2D Location) const
+{
+	// Get the grid location to the top left of the current point
+	int32 X = (int32)Location.X - 1;
+	int32 Y = (int32)Location.Y - 1;
+
+	// The distance to the closest point
+	float nearest_distance = 8.0f;
+
+	// Check each grid cell surrounding the cell containing to current point
+	for (uint32 y = 0; y < 3; ++y)
+	{
+		int32 offset_y = (Y + y) * Width;
+		for (uint32 x = 0; x < 3; ++x)
+		{
+			// Get the cell's location in the point array
+			int32 cell = (X + x) + offset_y;
+			if (cell > -1 && cell < Points.Num())
+			{
+				// Check the distance to the point
+				float distance = FVector2D::DistSquared(Location, Points[cell]);
+				if (distance < nearest_distance)
+				{
+					nearest_distance = distance;
+				}
+			}
+		}
+	}
+
+	return FMath::Sqrt(nearest_distance);
+}
+
 float UniformPointNoise::Dot(float X, float Y) const
 {
 	// Scale noise values
@@ -788,12 +741,9 @@ float UniformPointNoise::Dot(float X, float Y) const
 
 	// Get the nearest neighbor to the current point
 	FVector2D loc(X, Y);
-	FVector2D nearest = GetNearest(loc);
+	float nearest = GetNearestDistance(loc);
 
-	// Calculate the noise value based on distance
-	float value = 1.0f - FVector2D::Distance(loc, nearest) * 4;
-
-	return std::max(-1.0f, value);
+	return std::max(0.0f, 1.0f - nearest * 4);
 }
 
 float UniformPointNoise::Worley(float X, float Y) const
@@ -804,15 +754,7 @@ float UniformPointNoise::Worley(float X, float Y) const
 
 	// Get the nearest neighbor to the current point
 	FVector2D loc(X, Y);
-	FVector2D nearest = GetNearest(loc);
+	float nearest = GetNearestDistance(loc);
 
-	// Calculate the noise value based on distance
-	float value = FVector2D::DistSquared(loc, nearest) - 1.0f;
-
-	return std::min(1.0f, value);
-}
-
-const TArray<FVector2D>& UniformPointNoise::GetPoints()
-{
-	return Points;
+	return std::min(1.0f, nearest);
 }
