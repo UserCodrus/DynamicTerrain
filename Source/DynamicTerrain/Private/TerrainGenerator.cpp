@@ -144,7 +144,7 @@ void UMapGenerator::FoliageRandom(uint32 NumPoints)
 	for (int32 i = 0; i < groups.Num(); ++i)
 	{
 		// Create noise
-		PointNoise noise(10, 10, NumPoints, random_seed(rando));
+		PointNoise noise(2, 2, NumPoints, random_seed(rando));
 		const TArray<FVector2D>& points = noise.GetPoints();
 
 		// Add foliage objects
@@ -154,8 +154,8 @@ void UMapGenerator::FoliageRandom(uint32 NumPoints)
 		{
 			// Get the location of the foliage in world space
 			FVector location = Terrain->GetActorLocation();
-			location.X += ((points[p].X / noise.GetWidth()) * 2.0f - 1.0f) * xoffset;
-			location.Y += ((points[p].Y / noise.GetHeight()) * 2.0f - 1.0f) * yoffset;
+			location.X += (points[p].X - 1.0f) * xoffset;
+			location.Y += (points[p].Y - 1.0f) * yoffset;
 
 			// Place the foliage object
 			groups[i]->AddFoliageCluster(Terrain, location, random_seed(rando));
