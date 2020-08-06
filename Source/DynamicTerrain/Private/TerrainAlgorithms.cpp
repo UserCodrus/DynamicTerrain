@@ -595,8 +595,8 @@ UniformPointNoise::UniformPointNoise(uint32 NewWidth, uint32 NewHeight, uint32 S
 inline FVector2D UniformPointNoise::GetNearest(FVector2D Location) const
 {
 	// Get the grid location to the top left of the current point
-	int32 X = (int32)Location.X - 1;
-	int32 Y = (int32)Location.Y - 1;
+	int32 minx = (int32)Location.X - 1;
+	int32 miny = (int32)Location.Y - 1;
 
 	// The closest point found so far
 	FVector2D nearest(0.0f, 0.0f);
@@ -606,11 +606,11 @@ inline FVector2D UniformPointNoise::GetNearest(FVector2D Location) const
 	// Check each grid cell surrounding the cell containing to current point
 	for (uint32 y = 0; y < 3; ++y)
 	{
-		int32 offset_y = (Y + y) * Width;
+		int32 offset_y = (miny + y) * Width;
 		for (uint32 x = 0; x < 3; ++x)
 		{
 			// Get the cell's location in the point array
-			int32 cell = (X + x) + offset_y;
+			int32 cell = (minx + x) + offset_y;
 			if (cell > -1 && cell < Points.Num())
 			{
 				// Check the distance to the point
@@ -630,8 +630,8 @@ inline FVector2D UniformPointNoise::GetNearest(FVector2D Location) const
 float UniformPointNoise::GetNearestDistance(FVector2D Location) const
 {
 	// Get the grid location to the top left of the current point
-	int32 X = (int32)Location.X - 1;
-	int32 Y = (int32)Location.Y - 1;
+	int32 minx = (int32)Location.X - 1;
+	int32 miny = (int32)Location.Y - 1;
 
 	// The distance to the closest point
 	float nearest_distance = 8.0f;
@@ -639,11 +639,11 @@ float UniformPointNoise::GetNearestDistance(FVector2D Location) const
 	// Check each grid cell surrounding the cell containing to current point
 	for (uint32 y = 0; y < 3; ++y)
 	{
-		int32 offset_y = (Y + y) * Width;
+		int32 offset_y = (miny + y) * Width;
 		for (uint32 x = 0; x < 3; ++x)
 		{
 			// Get the cell's location in the point array
-			int32 cell = (X + x) + offset_y;
+			int32 cell = (minx + x) + offset_y;
 			if (cell > -1 && cell < Points.Num())
 			{
 				// Check the distance to the point
@@ -672,7 +672,7 @@ PoissonPointNoise::PoissonPointNoise(uint32 SpaceWidth, uint32 SpaceHeight, floa
 	Height = SpaceHeight;
 	
 	// Resize the sorting grid
-	InitializeSortingGrid(SampleRadius / grid_range);
+	InitializeSortingGrid(SampleRadius);
 
 	// Generate points using random x and y values
 	std::default_random_engine rando(Seed);
@@ -688,7 +688,7 @@ PoissonPointNoise::PoissonPointNoise(uint32 SpaceWidth, uint32 SpaceHeight, floa
 		{
 			// Create a new random point and test it
 			FVector2D point(x_dist(rando), y_dist(rando));
-			if (GetNearestDistance(point) > SampleRadius)
+			if (GetNearestDistance(point, SampleRadius) > SampleRadius)
 			{
 				// Add the point
 				Points.Add(point);
@@ -706,7 +706,7 @@ PoissonPointNoise::PoissonPointNoise(uint32 SpaceRadius, float SampleRadius, uin
 	Height = Width;
 	
 	// Resize the sorting grid
-	InitializeSortingGrid(SampleRadius / grid_range);
+	InitializeSortingGrid(SampleRadius);
 
 	// Generate points using random x and y values
 	std::default_random_engine rando(Seed);
@@ -724,7 +724,7 @@ PoissonPointNoise::PoissonPointNoise(uint32 SpaceRadius, float SampleRadius, uin
 			float a = angle(rando);
 			float d = SpaceRadius * FMath::Sqrt(dist(rando));
 			FVector2D point(d * FMath::Cos(a) + SpaceRadius, d * FMath::Sin(a) + SpaceRadius);
-			if (GetNearestDistance(point) > SampleRadius)
+			if (GetNearestDistance(point, SampleRadius) > SampleRadius)
 			{
 				// Add the point
 				Points.Add(point);
@@ -742,7 +742,7 @@ PoissonPointNoise::PoissonPointNoise(uint32 SpaceWidth, uint32 SpaceHeight, floa
 	Height = SpaceHeight;
 
 	// Resize the sorting grid
-	InitializeSortingGrid(SampleRadius / grid_range);
+	InitializeSortingGrid(SampleRadius);
 
 	// Generate points using random x and y values
 	std::default_random_engine rando(Seed);
@@ -773,7 +773,7 @@ PoissonPointNoise::PoissonPointNoise(uint32 SpaceWidth, uint32 SpaceHeight, floa
 			// Check the point and add it if it is valid
 			if (point.X > 0 && point.Y > 0 && point.X < Width && point.Y < Height)
 			{
-				if (GetNearestDistance(point) > SampleRadius)
+				if (GetNearestDistance(point, SampleRadius) > SampleRadius)
 				{
 					Points.Add(point);
 					SortPoint(Points.Num() - 1);
@@ -789,7 +789,7 @@ PoissonPointNoise::PoissonPointNoise(uint32 SpaceRadius, float SampleRadius, uin
 	Height = Width;
 
 	// Resize the sorting grid
-	InitializeSortingGrid(SampleRadius / grid_range);
+	InitializeSortingGrid(SampleRadius);
 
 	// Generate points using random x and y values
 	std::default_random_engine rando(Seed);
@@ -822,7 +822,7 @@ PoissonPointNoise::PoissonPointNoise(uint32 SpaceRadius, float SampleRadius, uin
 			// Check the point and add it if it is valid
 			if (FVector2D::DistSquared(center, point) < SpaceRadius * SpaceRadius)
 			{
-				if (GetNearestDistance(point) > SampleRadius)
+				if (GetNearestDistance(point, SampleRadius) > SampleRadius)
 				{
 					Points.Add(point);
 					SortPoint(Points.Num() - 1);
@@ -832,23 +832,24 @@ PoissonPointNoise::PoissonPointNoise(uint32 SpaceRadius, float SampleRadius, uin
 	}
 }
 
-FVector2D PoissonPointNoise::GetNearest(FVector2D Location) const
+FVector2D PoissonPointNoise::GetNearest(FVector2D Location, float SearchRadius) const
 {
-	// The maximum distance is sampling radius squared
-	float nearest_distance = GridBound * grid_range * 2;
+	// Calculate the number of grid cells to search and the maximum possible distance to return
+	uint32 GridRadius = (uint32)(SearchRadius / GridBound) + 1;
+	float nearest_distance = SearchRadius * GridRadius + 1;
 	nearest_distance *= nearest_distance;
 	FVector2D nearest_point;
 
-	int32 X = Location.X / GridBound - 1;
-	int32 Y = Location.Y / GridBound - 1;
+	int32 minx = Location.X / GridBound - GridRadius;
+	int32 miny = Location.Y / GridBound - GridRadius;
 
 	// Check every cell around the point
-	for (uint32 y = 0; y < 3; ++y)
+	for (uint32 y = 0; y < GridRadius * 2 + 1; ++y)
 	{
-		for (uint32 x = 0; x < 3; ++x)
+		for (uint32 x = 0; x < GridRadius * 2 + 1; ++x)
 		{
 			// Get the cell's location in the point array
-			int32 cell = X + x + (Y + y) * GridWidth;
+			int32 cell = minx + x + (miny + y) * GridWidth;
 			if (cell > -1 && cell < SortingGrid.Num())
 			{
 				if (SortingGrid[cell] > -1)
@@ -868,22 +869,23 @@ FVector2D PoissonPointNoise::GetNearest(FVector2D Location) const
 	return nearest_point;
 }
 
-float PoissonPointNoise::GetNearestDistance(FVector2D Location) const
+float PoissonPointNoise::GetNearestDistance(FVector2D Location, float SearchRadius) const
 {
-	// The maximum distance is sampling radius squared
-	float nearest_distance = GridBound * grid_range * 2;
+	// Calculate the number of grid cells to search and the maximum possible distance to return
+	uint32 GridRadius = (uint32)(SearchRadius / GridBound) + 1;
+	float nearest_distance = SearchRadius * GridRadius + 1;
 	nearest_distance *= nearest_distance;
 
-	int32 X = Location.X / GridBound - 1;
-	int32 Y = Location.Y / GridBound - 1;
+	int32 minx = Location.X / GridBound - GridRadius;
+	int32 miny = Location.Y / GridBound - GridRadius;
 
 	// Check every cell around the point
-	for (uint32 y = 0; y < 3; ++y)
+	for (uint32 y = 0; y < GridRadius * 2 + 1; ++y)
 	{
-		for (uint32 x = 0; x < 3; ++x)
+		for (uint32 x = 0; x < GridRadius * 2 + 1; ++x)
 		{
 			// Get the cell's location in the point array
-			int32 cell = X + x + (Y + y) * GridWidth;
+			int32 cell = minx + x + (miny + y) * GridWidth;
 			if (cell > -1 && cell < SortingGrid.Num())
 			{
 				if (SortingGrid[cell] > -1)
@@ -902,9 +904,9 @@ float PoissonPointNoise::GetNearestDistance(FVector2D Location) const
 	return FMath::Sqrt(nearest_distance);
 }
 
-void PoissonPointNoise::InitializeSortingGrid(float NewBound)
+void PoissonPointNoise::InitializeSortingGrid(float MinRadius)
 {
-	GridBound = NewBound;
+	GridBound = MinRadius / grid_range;
 	GridWidth = (Width / GridBound) + 1;
 	GridHeight = (Height / GridBound) + 1;
 

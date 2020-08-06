@@ -23,6 +23,34 @@ void UMapGenerator::SetSeed(int32 NewSeed)
 void UMapGenerator::Flat(float Height)
 {
 	MapFlat(0.0f);
+
+	// Noise unit test
+	/*TArray<UTerrainFoliageGroup*> groups;
+	Terrain->GetFoliageGroups(groups);
+	std::default_random_engine rando(Seed);
+	std::uniform_int_distribution<uint32> random_seed(0, std::numeric_limits<uint32>::max());
+
+	for (int32 i = 0; i < groups.Num(); ++i)
+	{
+		// Create noise
+		PoissonPointNoise noise(Terrain->GetMap()->GetWidthX() - 3, Terrain->GetMap()->GetWidthY() - 3, Height, random_seed(rando));
+		const TArray<FVector2D>& points = noise.GetPoints();
+
+		// Add foliage objects
+		FVector origin = Terrain->GetActorLocation();
+		origin.X -= (float)(Terrain->GetMap()->GetWidthX() - 3) / 2.0f * Terrain->GetActorScale3D().X;
+		origin.Y -= (float)(Terrain->GetMap()->GetWidthY() - 3) / 2.0f * Terrain->GetActorScale3D().Y;
+		for (int32 p = 0; p < points.Num(); ++p)
+		{
+			// Get the location of the foliage in world space
+			FVector location = origin;
+			location.X += points[p].X * Terrain->GetActorScale3D().X;
+			location.Y += points[p].Y * Terrain->GetActorScale3D().Y;
+
+			// Place the foliage object
+			groups[i]->AddFoliageUnit(Terrain, location, random_seed(rando));
+		}
+	}*/
 }
 
 void UMapGenerator::Plasma(int32 Scale, int32 Foliage, float MaxHeight)

@@ -121,12 +121,12 @@ public:
 	PoissonPointNoise(uint32 SpaceRadius, float SampleRadius, uint32 Seed);
 	virtual ~PoissonPointNoise() {};
 
-	virtual inline FVector2D GetNearest(FVector2D Location) const override;
-	virtual inline float GetNearestDistance(FVector2D Location) const override;
+	virtual inline FVector2D GetNearest(FVector2D Location, float SearchRadius) const;
+	virtual inline float GetNearestDistance(FVector2D Location, float SearchRadius) const;
 
 protected:
 	// Create the sorting grid
-	void InitializeSortingGrid(float NewBound);
+	void InitializeSortingGrid(float MinRadius);
 	// Add a point to the sorting grid
 	inline void SortPoint(int32 PointIndex);
 
