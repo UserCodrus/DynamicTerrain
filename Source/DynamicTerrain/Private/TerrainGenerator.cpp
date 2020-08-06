@@ -22,7 +22,7 @@ void UMapGenerator::SetSeed(int32 NewSeed)
 
 void UMapGenerator::Flat(float Height)
 {
-	MapFlat(Height);
+	MapFlat(0.0f);
 }
 
 void UMapGenerator::Plasma(int32 Scale, int32 Foliage, float MaxHeight)
@@ -65,7 +65,7 @@ void UMapGenerator::MapPlasma(int32 Scale, float MaxHeight)
 	int32 width_y = Map->GetWidthY();
 
 	// Create the plasma noise
-	PlasmaNoise noise(Scale, Seed);
+	ValueNoise noise(Scale, Seed);
 	noise.Scale(width_x, width_y);
 
 	// Sample the noise onto the terrain
@@ -144,18 +144,19 @@ void UMapGenerator::FoliageRandom(uint32 NumPoints)
 	for (int32 i = 0; i < groups.Num(); ++i)
 	{
 		// Create noise
-		PointNoise noise(2, 2, NumPoints, random_seed(rando));
+		PointNoise noise(Terrain->GetMap()->GetWidthX() - 3, Terrain->GetMap()->GetWidthY() - 3, NumPoints, random_seed(rando));
 		const TArray<FVector2D>& points = noise.GetPoints();
 
 		// Add foliage objects
-		float xoffset = (float)(Terrain->GetMap()->GetWidthX() - 3) / 2.0f * Terrain->GetActorScale3D().X;
-		float yoffset = (float)(Terrain->GetMap()->GetWidthY() - 3) / 2.0f * Terrain->GetActorScale3D().Y;
+		FVector origin = Terrain->GetActorLocation();
+		origin.X -= (float)(Terrain->GetMap()->GetWidthX() - 3) / 2.0f * Terrain->GetActorScale3D().X;
+		origin.Y -= (float)(Terrain->GetMap()->GetWidthY() - 3) / 2.0f * Terrain->GetActorScale3D().Y;
 		for (int32 p = 0; p < points.Num(); ++p)
 		{
 			// Get the location of the foliage in world space
-			FVector location = Terrain->GetActorLocation();
-			location.X += (points[p].X - 1.0f) * xoffset;
-			location.Y += (points[p].Y - 1.0f) * yoffset;
+			FVector location = origin;
+			location.X += points[p].X * Terrain->GetActorScale3D().X;
+			location.Y += points[p].Y * Terrain->GetActorScale3D().Y;
 
 			// Place the foliage object
 			groups[i]->AddFoliageCluster(Terrain, location, random_seed(rando));
@@ -180,14 +181,19 @@ void UMapGenerator::FoliageUniform(uint32 XPoints, uint32 YPoints)
 		const TArray<FVector2D>& points = noise.GetPoints();
 
 		// Add foliage objects
-		float xoffset = (float)(Terrain->GetMap()->GetWidthX() - 3) / 2.0f * Terrain->GetActorScale3D().X;
-		float yoffset = (float)(Terrain->GetMap()->GetWidthY() - 3) / 2.0f * Terrain->GetActorScale3D().Y;
+		FVector origin = Terrain->GetActorLocation();
+		origin.X -= (float)(Terrain->GetMap()->GetWidthX() - 3) / 2.0f * Terrain->GetActorScale3D().X;
+		origin.Y -= (float)(Terrain->GetMap()->GetWidthY() - 3) / 2.0f * Terrain->GetActorScale3D().Y;
+
+		float xscale = (float)(Terrain->GetMap()->GetWidthX() - 3) / noise.GetWidth() * Terrain->GetActorScale3D().X;
+		float yscale = (float)(Terrain->GetMap()->GetWidthY() - 3) / noise.GetHeight() * Terrain->GetActorScale3D().Y;
+
 		for (int32 p = 0; p < points.Num(); ++p)
 		{
 			// Get the location of the foliage in world space
-			FVector location = Terrain->GetActorLocation();
-			location.X += ((points[p].X / noise.GetWidth()) * 2.0f - 1.0f) * xoffset;
-			location.Y += ((points[p].Y / noise.GetHeight()) * 2.0f - 1.0f) * yoffset;
+			FVector location = origin;
+			location.X += points[p].X * xscale;
+			location.Y += points[p].Y * yscale;
 
 			// Place the foliage object
 			groups[i]->AddFoliageCluster(Terrain, location, random_seed(rando));

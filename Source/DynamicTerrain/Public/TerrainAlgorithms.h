@@ -44,7 +44,10 @@ class ValueNoise : public Noise
 {
 public:
 	ValueNoise() {};
+	// Random value noise
 	ValueNoise(uint32 NewWidth, uint32 NewHeight, uint32 Seed);
+	// Generate noise with the diamond-square algorithm
+	ValueNoise(uint32 Size, uint32 Seed);
 	ValueNoise(const ValueNoise& Copy);
 	virtual ~ValueNoise();
 
@@ -64,14 +67,6 @@ protected:
 	float* Value = nullptr;
 };
 
-// Value noise generated using the diamond square algorithm
-class PlasmaNoise : public ValueNoise
-{
-public:
-	PlasmaNoise(uint32 Size, uint32 Seed);
-	PlasmaNoise(const PlasmaNoise& Copy);
-};
-
 // Random points generated in a 2D space
 class PointNoise : public Noise
 {
@@ -81,6 +76,7 @@ public:
 	PointNoise(uint32 XWidth, uint32 YWidth, uint32 NumPoints, uint32 Seed);
 	// Generate noise in a cirlce
 	PointNoise(uint32 Radius, uint32 NumPoints, uint32 Seed);
+	virtual ~PointNoise() {};
 
 	virtual void Scale(uint32 SampleWidth, uint32 SampleHeight) override;
 
@@ -105,13 +101,39 @@ class UniformPointNoise : public PointNoise
 {
 public:
 	UniformPointNoise(uint32 NewWidth, uint32 NewHeight, uint32 Seed);
+	virtual ~UniformPointNoise() {};
+
+	virtual inline FVector2D GetNearest(FVector2D Location) const override;
+	virtual inline float GetNearestDistance(FVector2D Location) const override;
+};
+
+// Random points generated with Poisson disk sampling
+class PoissonPointNoise : public PointNoise
+{
+public:
+	// Generate random noise in a rectangle
+	PoissonPointNoise(uint32 SpaceWidth, uint32 SpaceHeight, float SampleRadius, uint32 NumPoints, uint32 Seed);
+	// Generate random noise in a circle
+	PoissonPointNoise(uint32 SpaceRadius, float SampleRadius, uint32 NumPoints, uint32 Seed);
+	// Fill a rectangle with random points
+	PoissonPointNoise(uint32 SpaceWidth, uint32 SpaceHeight, float SampleRadius, uint32 Seed);
+	// Fill a circle with random points
+	PoissonPointNoise(uint32 SpaceRadius, float SampleRadius, uint32 Seed);
+	virtual ~PoissonPointNoise() {};
 
 	virtual inline FVector2D GetNearest(FVector2D Location) const override;
 	virtual inline float GetNearestDistance(FVector2D Location) const override;
 
-	virtual float Dot(float X, float Y) const override;
-	virtual float Worley(float X, float Y) const override;
+protected:
+	// Create the sorting grid
+	void InitializeSortingGrid(float NewBound);
+	// Add a point to the sorting grid
+	inline void SortPoint(int32 PointIndex);
 
-	// Get the point in the provided grid cell
-	inline FVector2D GetPoint(uint32 X, uint32 Y) const;
+	// The size of each cell in the sorting grid
+	float GridBound;
+	// The dimensions of the sorting grid
+	uint32 GridWidth, GridHeight;
+	// A grid to store points for nearest neighbor searches
+	TArray<int32> SortingGrid;
 };

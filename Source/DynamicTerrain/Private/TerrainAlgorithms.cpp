@@ -144,6 +144,115 @@ ValueNoise::ValueNoise(uint32 NewWidth, uint32 NewHeight, uint32 Seed)
 	}
 }
 
+ValueNoise::ValueNoise(uint32 Size, uint32 Seed)
+{
+	Width = (unsigned)pow(2, Size) + 1;
+	Height = Width;
+	Value = new float[Width * Height];
+
+	std::default_random_engine rando(Seed);
+	std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+
+	// The range of the random values generated
+	float range = 0.5;
+
+	// Generate corner values
+	Value[0] = dist(rando) * range;
+	Value[Width - 1] = dist(rando) * range;
+	Value[(Height - 1) * Width] = dist(rando) * range;
+	Value[Height * Width - 1] = dist(rando) * range;
+
+	// The size of the current fractal
+	unsigned stride = Width - 1;
+
+	unsigned limit_x = Width - 1;
+	unsigned limit_y = Height - 1;
+
+	// Diamond-square algorithm
+	while (stride > 1)
+	{
+		range *= 0.5;
+		unsigned half = stride / 2;
+
+		// Diamond step
+		for (unsigned y = 0; y < limit_y; y += stride)
+		{
+			for (unsigned x = 0; x < limit_x; x += stride)
+			{
+				// Get the values of the four grid points at the corner of the current grid point
+				float v00 = Value[y * Width + x];
+				float v10 = Value[y * Width + (x + stride)];
+				float v01 = Value[(y + stride) * Width + x];
+				float v11 = Value[(y + stride) * Width + (x + stride)];
+
+				// Set the value of the current point to the average of the corners + a random value
+				Value[(y + half) * Width + (x + half)] = (v00 + v10 + v01 + v11) / 4.0f + dist(rando) * range;
+			}
+		}
+
+		// Square step - top / bottom edges
+		for (unsigned x = half; x < limit_x; x += stride)
+		{
+			// Get the values for the points adjacent to the top edge
+			float v_mid = Value[half * Width + x];
+			float v_left = Value[x - half];
+			float v_right = Value[x + half];
+
+			// Set the value for the top edge at the current x coordinate to the average of the adjacent points + a random value
+			Value[x] = (v_mid + v_left + v_right) / 3.0f + dist(rando) * range;
+
+			// Get the values for the points adjacent to the bottom edge
+			v_mid = Value[(limit_y - half) * Width + x];
+			v_left = Value[limit_y * Width + (x - half)];
+			v_right = Value[limit_y * Width + (x + half)];
+
+			// Set the value for the bottom edge at the current x coordinate to the average of the adjacent points + a random value
+			Value[limit_y * Width + x] = (v_mid + v_left + v_right) / 3.0f + dist(rando) * range;
+		}
+
+		// Square step - left / right edges
+		for (unsigned y = half; y < limit_y; y += stride)
+		{
+			// Get the values for the points adjacent to the left edge
+			float v_mid = Value[y * Width + half];
+			float v_top = Value[(y - half) * Width];
+			float v_bottom = Value[(y + half) * Width];
+
+			// Set the value for the left edge at the current y coordinate to the average of the adjacent points + a random value
+			Value[y * Width] = (v_mid + v_top + v_bottom) / 3.0f + dist(rando) * range;
+
+			// Get the values for the points adjacent to the right edge
+			v_mid = Value[y * Width + (limit_x - half)];
+			v_top = Value[(y - half) * Width + limit_x];
+			v_bottom = Value[(y + half) * Width + limit_x];
+
+			// Set the value for the right edge at the current y coordinate to the average of the adjacent points + a random value
+			Value[y * Width + limit_x] = (v_mid + v_top + v_bottom) / 3.0f + dist(rando) * range;
+		}
+
+		// Square step - center points
+		bool offset = true;
+		for (unsigned y = half; y < limit_y; y += half)
+		{
+			for (unsigned x = offset ? stride : half; x < limit_x; x += stride)
+			{
+				// Get the values of the four grid points adjacent the current grid point
+				float v_top = Value[(y - half) * Width + x];
+				float v_bottom = Value[(y + half) * Width + x];
+				float v_left = Value[y * Width + (x - half)];
+				float v_right = Value[y * Width + (x + half)];
+
+				// Set the value of the current point to the average of the adjacent points + a random value
+				Value[y * Width + x] = (v_top + v_bottom + v_left + v_right) / 4.0f + dist(rando) * range;
+			}
+
+			offset = !offset;
+		}
+
+		stride /= 2;
+	}
+}
+
 ValueNoise::ValueNoise(const ValueNoise& Copy)
 {
 	Width = Copy.Width;
@@ -340,125 +449,6 @@ float ValueNoise::Cubic(float X, float Y) const
 	return std::min(1.0f, std::max(curp(Y, a), -1.0f));
 }
 
-/// Plasma Noise ///
-
-PlasmaNoise::PlasmaNoise(uint32 Size, uint32 Seed)
-{
-	Width = (unsigned)pow(2, Size) + 1;
-	Height = Width;
-	Value = new float[Width * Height];
-
-	std::default_random_engine rando(Seed);
-	std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
-
-	// The range of the random values generated
-	float range = 0.5;
-
-	// Generate corner values
-	Value[0] = dist(rando) * range;
-	Value[Width - 1] = dist(rando) * range;
-	Value[(Height - 1) * Width] = dist(rando) * range;
-	Value[Height * Width - 1] = dist(rando) * range;
-
-	// The size of the current fractal
-	unsigned stride = Width - 1;
-
-	unsigned limit_x = Width - 1;
-	unsigned limit_y = Height - 1;
-
-	// Diamond-square algorithm
-	while (stride > 1)
-	{
-		range *= 0.5;
-		unsigned half = stride / 2;
-
-		// Diamond step
-		for (unsigned y = 0; y < limit_y; y += stride)
-		{
-			for (unsigned x = 0; x < limit_x; x += stride)
-			{
-				// Get the values of the four grid points at the corner of the current grid point
-				float v00 = Value[y * Width + x];
-				float v10 = Value[y * Width + (x + stride)];
-				float v01 = Value[(y + stride) * Width + x];
-				float v11 = Value[(y + stride) * Width + (x + stride)];
-
-				// Set the value of the current point to the average of the corners + a random value
-				Value[(y + half) * Width + (x + half)] = (v00 + v10 + v01 + v11) / 4.0f + dist(rando) * range;
-			}
-		}
-
-		// Square step - top / bottom edges
-		for (unsigned x = half; x < limit_x; x += stride)
-		{
-			// Get the values for the points adjacent to the top edge
-			float v_mid = Value[half * Width + x];
-			float v_left = Value[x - half];
-			float v_right = Value[x + half];
-
-			// Set the value for the top edge at the current x coordinate to the average of the adjacent points + a random value
-			Value[x] = (v_mid + v_left + v_right) / 3.0f + dist(rando) * range;
-
-			// Get the values for the points adjacent to the bottom edge
-			v_mid = Value[(limit_y - half) * Width + x];
-			v_left = Value[limit_y * Width + (x - half)];
-			v_right = Value[limit_y * Width + (x + half)];
-
-			// Set the value for the bottom edge at the current x coordinate to the average of the adjacent points + a random value
-			Value[limit_y * Width + x] = (v_mid + v_left + v_right) / 3.0f + dist(rando) * range;
-		}
-
-		// Square step - left / right edges
-		for (unsigned y = half; y < limit_y; y += stride)
-		{
-			// Get the values for the points adjacent to the left edge
-			float v_mid = Value[y * Width + half];
-			float v_top = Value[(y - half) * Width];
-			float v_bottom = Value[(y + half) * Width];
-
-			// Set the value for the left edge at the current y coordinate to the average of the adjacent points + a random value
-			Value[y * Width] = (v_mid + v_top + v_bottom) / 3.0f + dist(rando) * range;
-
-			// Get the values for the points adjacent to the right edge
-			v_mid = Value[y * Width + (limit_x - half)];
-			v_top = Value[(y - half) * Width + limit_x];
-			v_bottom = Value[(y + half) * Width + limit_x];
-
-			// Set the value for the right edge at the current y coordinate to the average of the adjacent points + a random value
-			Value[y * Width + limit_x] = (v_mid + v_top + v_bottom) / 3.0f + dist(rando) * range;
-		}
-
-		// Square step - center points
-		bool offset = true;
-		for (unsigned y = half; y < limit_y; y += half)
-		{
-			for (unsigned x = offset ? stride : half; x < limit_x; x += stride)
-			{
-				// Get the values of the four grid points adjacent the current grid point
-				float v_top = Value[(y - half) * Width + x];
-				float v_bottom = Value[(y + half) * Width + x];
-				float v_left = Value[y * Width + (x - half)];
-				float v_right = Value[y * Width + (x + half)];
-
-				// Set the value of the current point to the average of the adjacent points + a random value
-				Value[y * Width + x] = (v_top + v_bottom + v_left + v_right) / 4.0f + dist(rando) * range;
-			}
-
-			offset = !offset;
-		}
-
-		stride /= 2;
-	}
-}
-
-PlasmaNoise::PlasmaNoise(const PlasmaNoise& Copy)
-{
-	Width = Copy.Width;
-	Height = Copy.Height;
-	Value = new float[Width * Height];
-	memcpy(Value, Copy.Value, Width * Height * sizeof(float));
-}
-
 /// Random Point Noise ///
 
 PointNoise::PointNoise(uint32 XWidth, uint32 YWidth, uint32 NumPoints, uint32 Seed)
@@ -474,7 +464,7 @@ PointNoise::PointNoise(uint32 XWidth, uint32 YWidth, uint32 NumPoints, uint32 Se
 	Points.SetNumUninitialized(NumPoints);
 	for (uint32 i = 0; i < NumPoints; ++i)
 	{
-		// Create a point and sort it in the point grid
+		// Create a point
 		Points[i] = FVector2D(x_dist(rando), y_dist(rando));
 	}
 }
@@ -496,7 +486,7 @@ PointNoise::PointNoise(uint32 Radius, uint32 NumPoints, uint32 Seed)
 		float a = angle(rando);
 		float d = Radius * FMath::Sqrt(dist(rando));
 
-		// Create a point in the circle and sort it into the point grid
+		// Create a point
 		Points[i] = FVector2D(d * FMath::Cos(a), d * FMath::Sin(a));
 	}
 }
@@ -669,33 +659,265 @@ float UniformPointNoise::GetNearestDistance(FVector2D Location) const
 	return FMath::Sqrt(nearest_distance);
 }
 
-float UniformPointNoise::Dot(float X, float Y) const
+/// Poisson Point Noise ///
+
+// The divisor of the sampling radius used to calculate the size of sorting grids
+constexpr float grid_range = 1.42;
+// The number of samples to attempt for each algorithm
+constexpr uint32 num_samples = 20;
+
+PoissonPointNoise::PoissonPointNoise(uint32 SpaceWidth, uint32 SpaceHeight, float SampleRadius, uint32 NumPoints, uint32 Seed)
 {
-	// Scale noise values
-	X *= ScaleX;
-	Y *= ScaleY;
+	Width = SpaceWidth;
+	Height = SpaceHeight;
+	
+	// Resize the sorting grid
+	InitializeSortingGrid(SampleRadius / grid_range);
 
-	// Get the nearest neighbor to the current point
-	FVector2D loc(X, Y);
-	float nearest = GetNearestDistance(loc);
+	// Generate points using random x and y values
+	std::default_random_engine rando(Seed);
+	std::uniform_real_distribution<float> x_dist(0.0f, (float)Width);
+	std::uniform_real_distribution<float> y_dist(0.0f, (float)Height);
 
-	return std::max(0.0f, 1.0f - nearest * 4);
+	// Generate points
+	Points.Reserve(NumPoints);
+	for (uint32 i = 0; i < NumPoints; ++i)
+	{
+		// Try multiple samples for each point
+		for (uint32 j = 0; j < num_samples; ++j)
+		{
+			// Create a new random point and test it
+			FVector2D point(x_dist(rando), y_dist(rando));
+			if (GetNearestDistance(point) > SampleRadius)
+			{
+				// Add the point
+				Points.Add(point);
+				SortPoint(Points.Num() - 1);
+
+				break;
+			}
+		}
+	}
 }
 
-float UniformPointNoise::Worley(float X, float Y) const
+PoissonPointNoise::PoissonPointNoise(uint32 SpaceRadius, float SampleRadius, uint32 NumPoints, uint32 Seed)
 {
-	// Scale noise values
-	X *= ScaleX;
-	Y *= ScaleY;
+	Width = SpaceRadius * 2;
+	Height = Width;
+	
+	// Resize the sorting grid
+	InitializeSortingGrid(SampleRadius / grid_range);
 
-	// Get the nearest neighbor to the current point
-	FVector2D loc(X, Y);
-	float nearest = GetNearestDistance(loc);
+	// Generate points using random x and y values
+	std::default_random_engine rando(Seed);
+	std::uniform_real_distribution<float> angle(0.0f, 360.0f);
+	std::uniform_real_distribution<float> dist;
 
-	return std::min(1.0f, nearest);
+	// Generate points
+	Points.Reserve(NumPoints);
+	for (uint32 i = 0; i < NumPoints; ++i)
+	{
+		// Try multiple samples for each point
+		for (int32 j = 0; j < 20; ++j)
+		{
+			// Create a new random point and test it
+			float a = angle(rando);
+			float d = SpaceRadius * FMath::Sqrt(dist(rando));
+			FVector2D point(d * FMath::Cos(a) + SpaceRadius, d * FMath::Sin(a) + SpaceRadius);
+			if (GetNearestDistance(point) > SampleRadius)
+			{
+				// Add the point
+				Points.Add(point);
+				SortPoint(Points.Num() - 1);
+
+				break;
+			}
+		}
+	}
 }
 
-inline FVector2D UniformPointNoise::GetPoint(uint32 X, uint32 Y) const
+PoissonPointNoise::PoissonPointNoise(uint32 SpaceWidth, uint32 SpaceHeight, float SampleRadius, uint32 Seed)
 {
-	return Points[X + Y * Width];
+	Width = SpaceWidth;
+	Height = SpaceHeight;
+
+	// Resize the sorting grid
+	InitializeSortingGrid(SampleRadius / grid_range);
+
+	// Generate points using random x and y values
+	std::default_random_engine rando(Seed);
+	std::uniform_real_distribution<float> angle(0.0f, 360.0f);
+	std::uniform_real_distribution<float> dist;
+	std::uniform_real_distribution<float> x_dist(0.0f, (float)Width);
+	std::uniform_real_distribution<float> y_dist(0.0f, (float)Height);
+
+	// Create the initial point
+	FVector2D start(x_dist(rando), y_dist(rando));
+
+	uint32 num_circles = SpaceWidth * SpaceHeight / (PI * SampleRadius * SampleRadius);
+	Points.Reserve(num_circles);
+	Points.Add(start);
+
+	SortingGrid[(uint32)(start.X / GridBound) + (uint32)(start.Y / GridBound) * GridWidth] = Points.Num() - 1;
+
+	// Generate points until we have run out of candidates
+	for (int32 i = 0; i < Points.Num(); ++i)
+	{
+		for (uint32 j = 0; j < num_samples; ++j)
+		{
+			// Generate a point near the current candidate
+			float a = angle(rando);
+			float d = SampleRadius * dist(rando) + SampleRadius;
+			FVector2D point(d * FMath::Cos(a) + Points[i].X, d * FMath::Sin(a) + Points[i].Y);
+
+			// Check the point and add it if it is valid
+			if (point.X > 0 && point.Y > 0 && point.X < Width && point.Y < Height)
+			{
+				if (GetNearestDistance(point) > SampleRadius)
+				{
+					Points.Add(point);
+					SortPoint(Points.Num() - 1);
+				}
+			}
+		}
+	}
+}
+
+PoissonPointNoise::PoissonPointNoise(uint32 SpaceRadius, float SampleRadius, uint32 Seed)
+{
+	Width = SpaceRadius * 2;
+	Height = Width;
+
+	// Resize the sorting grid
+	InitializeSortingGrid(SampleRadius / grid_range);
+
+	// Generate points using random x and y values
+	std::default_random_engine rando(Seed);
+	std::uniform_real_distribution<float> angle(0.0f, 360.0f);
+	std::uniform_real_distribution<float> dist;
+
+	// Create the initial point
+	float a = angle(rando);
+	float d = SpaceRadius * FMath::Sqrt(dist(rando));
+	FVector2D start(d * FMath::Cos(a) + SpaceRadius, d * FMath::Sin(a) + SpaceRadius);
+
+	uint32 num_circles = PI * SpaceRadius * SpaceRadius / (PI * SampleRadius * SampleRadius);
+	Points.Reserve(num_circles);
+	Points.Add(start);
+
+	SortingGrid[(uint32)(start.X / GridBound) + (uint32)(start.Y / GridBound) * GridWidth] = Points.Num() - 1;
+
+	FVector2D center((float)Width / 2, (float)Height / 2);
+
+	// Generate points until we have run out of candidates
+	for (int32 i = 0; i < Points.Num(); ++i)
+	{
+		for (uint32 j = 0; j < num_samples; ++j)
+		{
+			// Generate a point near the current candidate
+			a = angle(rando);
+			d = SampleRadius * dist(rando) + SampleRadius;
+			FVector2D point(d * FMath::Cos(a) + Points[i].X, d * FMath::Sin(a) + Points[i].Y);
+
+			// Check the point and add it if it is valid
+			if (FVector2D::DistSquared(center, point) < SpaceRadius * SpaceRadius)
+			{
+				if (GetNearestDistance(point) > SampleRadius)
+				{
+					Points.Add(point);
+					SortPoint(Points.Num() - 1);
+				}
+			}
+		}
+	}
+}
+
+FVector2D PoissonPointNoise::GetNearest(FVector2D Location) const
+{
+	// The maximum distance is sampling radius squared
+	float nearest_distance = GridBound * grid_range * 2;
+	nearest_distance *= nearest_distance;
+	FVector2D nearest_point;
+
+	int32 X = Location.X / GridBound - 1;
+	int32 Y = Location.Y / GridBound - 1;
+
+	// Check every cell around the point
+	for (uint32 y = 0; y < 3; ++y)
+	{
+		for (uint32 x = 0; x < 3; ++x)
+		{
+			// Get the cell's location in the point array
+			int32 cell = X + x + (Y + y) * GridWidth;
+			if (cell > -1 && cell < SortingGrid.Num())
+			{
+				if (SortingGrid[cell] > -1)
+				{
+					// Check the distance to the point
+					float distance = FVector2D::DistSquared(Location, Points[SortingGrid[cell]]);
+					if (distance < nearest_distance)
+					{
+						nearest_distance = distance;
+						nearest_point = Points[SortingGrid[cell]];
+					}
+				}
+			}
+		}
+	}
+
+	return nearest_point;
+}
+
+float PoissonPointNoise::GetNearestDistance(FVector2D Location) const
+{
+	// The maximum distance is sampling radius squared
+	float nearest_distance = GridBound * grid_range * 2;
+	nearest_distance *= nearest_distance;
+
+	int32 X = Location.X / GridBound - 1;
+	int32 Y = Location.Y / GridBound - 1;
+
+	// Check every cell around the point
+	for (uint32 y = 0; y < 3; ++y)
+	{
+		for (uint32 x = 0; x < 3; ++x)
+		{
+			// Get the cell's location in the point array
+			int32 cell = X + x + (Y + y) * GridWidth;
+			if (cell > -1 && cell < SortingGrid.Num())
+			{
+				if (SortingGrid[cell] > -1)
+				{
+					// Check the distance to the point
+					float distance = FVector2D::DistSquared(Location, Points[SortingGrid[cell]]);
+					if (distance < nearest_distance)
+					{
+						nearest_distance = distance;
+					}
+				}
+			}
+		}
+	}
+
+	return FMath::Sqrt(nearest_distance);
+}
+
+void PoissonPointNoise::InitializeSortingGrid(float NewBound)
+{
+	GridBound = NewBound;
+	GridWidth = (Width / GridBound) + 1;
+	GridHeight = (Height / GridBound) + 1;
+
+	SortingGrid.SetNumUninitialized(GridWidth * GridHeight);
+	for (int32 i = 0; i < SortingGrid.Num(); ++i)
+	{
+		SortingGrid[i] = -1;
+	}
+}
+
+void PoissonPointNoise::SortPoint(int32 PointIndex)
+{
+	uint32 x = Points[PointIndex].X / GridBound;
+	uint32 y = Points[PointIndex].Y / GridBound;
+	SortingGrid[x + y * GridWidth] = PointIndex;
 }

@@ -12,10 +12,15 @@ struct DYNAMICTERRAIN_API FFoliageMesh
 {
 	GENERATED_BODY()
 
+	// The mesh that will be generated
 	UPROPERTY(EditAnywhere)
 		UStaticMesh* Mesh = nullptr;
+	// The odds that this mesh will appear in a cluster
 	UPROPERTY(EditAnywhere)
 		uint32 Weight = 1;
+	// The safe space between this mesh and other meshes
+	UPROPERTY(EditAnywhere)
+		float Size = 100.0f;
 };
 
 UCLASS(BlueprintType)
