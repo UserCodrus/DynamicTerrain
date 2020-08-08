@@ -2,7 +2,7 @@
 #include "Terrain.h"
 #include "TerrainAlgorithms.h"
 
-#include "Components/InstancedStaticMeshComponent.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 
 #include <random>
@@ -64,7 +64,7 @@ void UTerrainFoliageGroup::AddFoliageCluster(ATerrain* Terrain, FVector Location
 
 void UTerrainFoliageGroup::AddFoliageUnit(ATerrain* Terrain, FVector Location, uint32 Seed) const
 {
-	UInstancedStaticMeshComponent* components = GetRandomComponent(Terrain, Seed);
+	UHierarchicalInstancedStaticMeshComponent* components = GetRandomComponent(Terrain, Seed);
 
 	if (components != nullptr)
 	{
@@ -87,7 +87,7 @@ void UTerrainFoliageGroup::AddFoliageUnit(ATerrain* Terrain, FVector Location, u
 	}
 }
 
-UInstancedStaticMeshComponent* UTerrainFoliageGroup::GetRandomComponent(ATerrain* Terrain, uint32 Seed) const
+UHierarchicalInstancedStaticMeshComponent* UTerrainFoliageGroup::GetRandomComponent(ATerrain* Terrain, uint32 Seed) const
 {
 	// Calculate the total weight of all the meshes
 	int32 total_weight = 0;

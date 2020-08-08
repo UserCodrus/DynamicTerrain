@@ -5,7 +5,7 @@
 #include "TerrainFoliage.generated.h"
 
 class ATerrain;
-class UInstancedStaticMeshComponent;
+class UHierarchicalInstancedStaticMeshComponent;
 
 USTRUCT(BlueprintType)
 struct DYNAMICTERRAIN_API FFoliageMesh
@@ -60,5 +60,5 @@ public:
 
 protected:
 	// Get instanced static mesh components from a terrain matching this foliage group
-	UInstancedStaticMeshComponent* GetRandomComponent(ATerrain* Terrain, uint32 Seed) const;
+	UHierarchicalInstancedStaticMeshComponent* GetRandomComponent(ATerrain* Terrain, uint32 Seed) const;
 };
