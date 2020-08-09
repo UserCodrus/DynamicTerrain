@@ -195,14 +195,25 @@ void FDynamicTerrainDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilde
 				[
 					SNew(SGeneratorBox)
 				];
+			// Generate button
+			category_generate.AddCustomRow(FText::GetEmpty())
+				[
+					SNew(SButton).Text(LOCTEXT("GenerateButton", "Generate")).OnClicked_Static(&FDynamicTerrainDetails::GenerateButton)
+				];
 
-			// Display parameters for the current generator
+			// Add seed settings
+			TSharedRef<IPropertyHandle> prop = DetailBuilder.GetProperty("UseRandomSeed");
+			category_generate.AddProperty(prop);
+			prop = DetailBuilder.GetProperty("Seed");
+			category_generate.AddProperty(prop);
+
+			// Add parameters for the current generator
 			FTerrainGenerator* generator = mode->GetGenerator().Get();
 			for (int32 i = 0; i < generator->Parameters.Num(); ++i)
 			{
 				// Create the name of the property
 				FString param_name;
-				if (generator->IsFloat[i])
+				if (generator->Parameters[i].IsFloat)
 				{
 					param_name = "FloatProperties[";
 				}
@@ -213,17 +224,21 @@ void FDynamicTerrainDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilde
 				param_name.AppendInt(i);
 				param_name.Append("]");
 
-				// Add the property with the matching name
-				category_generate.AddCustomRow(FText::GetEmpty())
-					[
-						SNew(SProperty, DetailBuilder.GetProperty(*param_name)).DisplayName(FText::FromString(generator->Parameters[i]))
-					];
+				// Find the property and set its default value
+				prop = DetailBuilder.GetProperty(*param_name);
+				if (generator->Parameters[i].IsFloat)
+				{
+					prop->SetValue(generator->Parameters[i].Default);
+				}
+				else
+				{
+					prop->SetValue((int32)generator->Parameters[i].Default);
+				}
+				prop->SetPropertyDisplayName(FText::FromString(generator->Parameters[i].Name));
+				
+				// Add the property to the details panel
+				category_generate.AddProperty(prop);
 			}
-
-			category_generate.AddCustomRow(FText::GetEmpty())
-				[
-					SNew(SButton).Text(LOCTEXT("GenerateButton", "Generate")).OnClicked_Static(&FDynamicTerrainDetails::GenerateButton)
-				];
 
 			// Hide categories
 			DetailBuilder.EditCategory("Foliage Settings", FText::GetEmpty(), ECategoryPriority::Important).SetCategoryVisibility(false);

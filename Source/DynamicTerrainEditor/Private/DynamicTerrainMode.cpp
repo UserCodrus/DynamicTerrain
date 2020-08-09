@@ -84,9 +84,17 @@ FDynamicTerrainMode::FDynamicTerrainMode()
 				// Make sure the property is a numeric type
 				if (FNumericProperty* nprop = CastField<FNumericProperty>(prop))
 				{
+					// Add a new parameter
+					TSharedRef<FTerrainGenerator> generator = Generators.Last().ToSharedRef();
+					generator->Parameters.Emplace();
+
 					// Get the name and type of the parameter
-					Generators.Last()->IsFloat.Push(nprop->IsFloatingPoint());
-					Generators.Last()->Parameters.Push(nprop->GetName());
+					generator->Parameters.Last().Name = nprop->GetName();
+					generator->Parameters.Last().IsFloat = nprop->IsFloatingPoint();
+					if (nprop->HasMetaData("Default"))
+					{
+						generator->Parameters.Last().Default = nprop->GetFloatMetaData("Default");
+					}
 				}
 				else
 				{
@@ -563,17 +571,27 @@ void FDynamicTerrainMode::ProcessGenerateCommand(/*const TCHAR* Command*/)
 		return;
 
 	// Get a new seed for the map generator
-	MapGen->NewSeed();
+	if (Settings->UseRandomSeed)
+	{
+		MapGen->NewSeed();
+		Settings->Seed = (int32)MapGen->Seed;
+	}
+	else
+	{
+		MapGen->SetSeed(Settings->Seed);
+	}
+
+
 	SelectedTerrain->DeleteFoliage();
 
 	// Create a console command using parameters from the settings panel
 	FString command(CurrentGenerator->Name.ToString());
 
-	for (int32 i = 0; i < CurrentGenerator->IsFloat.Num(); ++i)
+	for (int32 i = 0; i < CurrentGenerator->Parameters.Num(); ++i)
 	{
 		command.Append(" ");
 
-		if (CurrentGenerator->IsFloat[i])
+		if (CurrentGenerator->Parameters[i].IsFloat)
 		{
 			command.Append(FString::SanitizeFloat(Settings->FloatProperties[i]));
 		}

@@ -28,6 +28,13 @@ struct FDynamicTerrainToolMode
 	const TerrainModeID ModeID;
 };
 
+struct FGeneratorParam
+{
+	FString Name;
+	bool IsFloat;
+	float Default = 0.0f;
+};
+
 struct FTerrainGenerator
 {
 	FTerrainGenerator(FName GennyName)
@@ -36,8 +43,7 @@ struct FTerrainGenerator
 	}
 
 	FName Name;
-	TArray<FString> Parameters;
-	TArray<bool> IsFloat;
+	TArray<FGeneratorParam> Parameters;
 };
 
 UCLASS()
@@ -99,6 +105,10 @@ public:
 		int32 IntProperties[NUM_PROPERTIES];
 	UPROPERTY(EditAnywhere, Category = "Generator")
 		float FloatProperties[NUM_PROPERTIES];
+	UPROPERTY(EditAnywhere, Category = "Generator")
+		bool UseRandomSeed = true;
+	UPROPERTY(EditAnywhere, Category = "Generator")
+		int32 Seed = 0;
 };
 
 class FDynamicTerrainMode : public FEdMode

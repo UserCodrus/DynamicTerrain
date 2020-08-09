@@ -32,11 +32,23 @@ public:
 
 	// Generate a map using plasma noise
 	UFUNCTION(BlueprintCallable)
-		void Plasma(int32 Scale, int32 Foliage, float MaxHeight);
+		void Plasma(
+			UPARAM(meta = (Default = 4)) int32 Scale,
+			UPARAM(meta = (Default = 5)) int32 Foliage,
+			UPARAM(meta = (Default = 256)) float MaxHeight);
 
 	// Generate a map using multiple layers of perlin noise
 	UFUNCTION(BlueprintCallable)
-		void Perlin(int32 Frequency, int32 Octaves, float Persistence, float MaxHeight);
+		void Perlin(
+			UPARAM(meta = (Default = 2)) int32 Frequency,
+			UPARAM(meta = (Default = 3)) int32 Octaves,
+			UPARAM(meta = (Default = 0.5f)) float Persistence,
+			UPARAM(meta = (Default = 256)) float MaxHeight);
+
+	UFUNCTION(BlueprintCallable)
+		void TestGenerator(
+			UPARAM(meta = (Default=4)) int32 MountainFrequency,
+			UPARAM(meta = (Default=256)) float MaxHeight);
 
 protected:
 	/// Map Generator Components ///

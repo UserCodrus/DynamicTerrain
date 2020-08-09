@@ -65,6 +65,46 @@ void UMapGenerator::Perlin(int32 Frequency, int32 Octaves, float Persistence, fl
 	FoliageRandom(Frequency * 10);
 }
 
+void UMapGenerator::TestGenerator(int32 MountainFrequency, float MaxHeight)
+{
+	if (MountainFrequency < 2)
+	{
+		MountainFrequency = 2;
+	}
+	if (MaxHeight < 1.0f)
+	{
+		MaxHeight = 1.0f;
+	}
+
+	std::default_random_engine rng(Seed);
+	std::uniform_int_distribution<uint32> random_seed(0, std::numeric_limits<uint32>::max());
+
+	UHeightMap* Map = Terrain->GetMap();
+
+	int32 width_x = Map->GetWidthX();
+	int32 width_y = Map->GetWidthY();
+
+	// Create noise data
+	GradientNoise base(MountainFrequency, MountainFrequency, random_seed(rng));
+	GradientNoise detail(MountainFrequency * 10, MountainFrequency * 10, random_seed(rng));
+	base.Scale(width_x, width_y);
+	detail.Scale(width_x, width_y);
+
+	// Sample the noise onto the terrain
+	for (int32 x = 0; x < width_x; ++x)
+	{
+		for (int32 y = 0; y < width_y; ++y)
+		{
+			float height = 0.0f;
+			float base_height = base.Perlin(x, y);
+			height += FMath::Clamp(base_height * base_height * 0.9f, 0.0f, 1.0f);
+			height += (detail.Perlin(x, y) * base_height) * 0.1;
+
+			Map->SetHeight(x, y, height * MaxHeight);
+		}
+	}
+}
+
 /// Map Generator Components ///
 
 void UMapGenerator::MapFlat(float Height)
