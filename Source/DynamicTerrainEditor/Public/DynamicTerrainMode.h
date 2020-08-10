@@ -30,7 +30,7 @@ struct FDynamicTerrainToolMode
 
 struct FGeneratorParam
 {
-	FString Name;
+	FText Name;
 	bool IsFloat;
 	float Default = 0.0f;
 };

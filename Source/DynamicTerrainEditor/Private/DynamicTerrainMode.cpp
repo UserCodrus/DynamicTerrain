@@ -89,7 +89,7 @@ FDynamicTerrainMode::FDynamicTerrainMode()
 					generator->Parameters.Emplace();
 
 					// Get the name and type of the parameter
-					generator->Parameters.Last().Name = nprop->GetName();
+					generator->Parameters.Last().Name = nprop->GetDisplayNameText();
 					generator->Parameters.Last().IsFloat = nprop->IsFloatingPoint();
 					if (nprop->HasMetaData("Default"))
 					{

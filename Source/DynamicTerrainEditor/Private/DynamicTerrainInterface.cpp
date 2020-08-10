@@ -226,6 +226,7 @@ void FDynamicTerrainDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilde
 
 				// Find the property and set its default value
 				prop = DetailBuilder.GetProperty(*param_name);
+				prop->SetPropertyDisplayName(generator->Parameters[i].Name);
 				if (generator->Parameters[i].IsFloat)
 				{
 					prop->SetValue(generator->Parameters[i].Default);
@@ -234,7 +235,6 @@ void FDynamicTerrainDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilde
 				{
 					prop->SetValue((int32)generator->Parameters[i].Default);
 				}
-				prop->SetPropertyDisplayName(FText::FromString(generator->Parameters[i].Name));
 				
 				// Add the property to the details panel
 				category_generate.AddProperty(prop);
