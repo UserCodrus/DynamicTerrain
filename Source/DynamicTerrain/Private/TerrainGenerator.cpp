@@ -25,7 +25,7 @@ void UMapGenerator::Flat(float Height)
 	MapFlat(0.0f);
 
 	// Noise unit test
-	/*TArray<UTerrainFoliageGroup*> groups;
+	/*TArray<UTerrainFoliageSpawner*> groups;
 	Terrain->GetFoliageGroups(groups);
 	std::default_random_engine rando(Seed);
 	std::uniform_int_distribution<uint32> random_seed(0, std::numeric_limits<uint32>::max());
@@ -65,12 +65,8 @@ void UMapGenerator::Perlin(int32 Frequency, int32 Octaves, float Persistence, fl
 	FoliageRandom(Frequency * 10);
 }
 
-void UMapGenerator::TestGenerator(int32 MountainFrequency, float MaxHeight)
+void UMapGenerator::TestGenerator(int32 BaseFrequency, int32 ElevationFrequency, int32 DetailFrequency, float MaxHeight)
 {
-	if (MountainFrequency < 2)
-	{
-		MountainFrequency = 2;
-	}
 	if (MaxHeight < 1.0f)
 	{
 		MaxHeight = 1.0f;
@@ -85,9 +81,11 @@ void UMapGenerator::TestGenerator(int32 MountainFrequency, float MaxHeight)
 	int32 width_y = Map->GetWidthY();
 
 	// Create noise data
-	GradientNoise base(MountainFrequency, MountainFrequency, random_seed(rng));
-	GradientNoise detail(MountainFrequency * 10, MountainFrequency * 10, random_seed(rng));
+	GradientNoise base(BaseFrequency, BaseFrequency, random_seed(rng));
+	GradientNoise elevation(ElevationFrequency, ElevationFrequency, random_seed(rng));
+	GradientNoise detail(DetailFrequency, DetailFrequency, random_seed(rng));
 	base.Scale(width_x, width_y);
+	elevation.Scale(width_x, width_y);
 	detail.Scale(width_x, width_y);
 
 	// Sample the noise onto the terrain
@@ -95,10 +93,15 @@ void UMapGenerator::TestGenerator(int32 MountainFrequency, float MaxHeight)
 	{
 		for (int32 y = 0; y < width_y; ++y)
 		{
-			float height = 0.0f;
 			float base_height = base.Perlin(x, y);
-			height += FMath::Clamp(base_height * base_height * 0.9f, 0.0f, 1.0f);
-			height += (detail.Perlin(x, y) * base_height) * 0.1;
+			float mountain = elevation.Perlin(x, y);
+
+			// Start with base islands
+			float height = base.Perlin(x, y) * 0.05f;
+			// Add mountains and valleys
+			height += mountain * mountain * mountain * 0.85f;
+			// Add rough details
+			height += detail.Perlin(x, y) * mountain * 0.1f;
 
 			Map->SetHeight(x, y, height * MaxHeight);
 		}
@@ -204,7 +207,7 @@ void UMapGenerator::FoliageRandom(uint32 NumPoints)
 	if (NumPoints < 1)
 		return;
 
-	TArray<UTerrainFoliageGroup*> groups;
+	TArray<UTerrainFoliageSpawner*> groups;
 	Terrain->GetFoliageGroups(groups);
 	std::default_random_engine rando(Seed);
 	std::uniform_int_distribution<uint32> random_seed(0, std::numeric_limits<uint32>::max());
@@ -237,7 +240,7 @@ void UMapGenerator::FoliageUniform(uint32 XPoints, uint32 YPoints)
 	if (XPoints < 1 || YPoints < 1)
 		return;
 
-	TArray<UTerrainFoliageGroup*> groups;
+	TArray<UTerrainFoliageSpawner*> groups;
 	Terrain->GetFoliageGroups(groups);
 	std::default_random_engine rando(Seed);
 	std::uniform_int_distribution<uint32> random_seed(0, std::numeric_limits<uint32>::max());

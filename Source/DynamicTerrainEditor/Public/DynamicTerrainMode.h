@@ -97,7 +97,7 @@ public:
 		float Strength = 1.0f;
 
 	UPROPERTY(EditAnywhere, Category = "Foliage Settings")
-		TArray<UTerrainFoliageGroup*> Foliage;
+		TArray<UTerrainFoliageSpawner*> Foliage;
 
 	UPROPERTY(EditAnywhere, Category = "Generator")
 		FString FunctionName;

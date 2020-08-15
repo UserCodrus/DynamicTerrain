@@ -8,7 +8,7 @@
 #include <random>
 #include <limits>
 
-void UTerrainFoliageGroup::AddFoliageCluster(ATerrain* Terrain, FVector Location, uint32 Seed) const
+void UTerrainFoliageSpawner::AddFoliageCluster(ATerrain* Terrain, FVector Location, uint32 Seed) const
 {
 	// Get the bounds of the map
 	float xbounds = (float)(Terrain->GetMap()->GetWidthX() - 3) / 2.0f * Terrain->GetActorScale3D().X;
@@ -26,7 +26,7 @@ void UTerrainFoliageGroup::AddFoliageCluster(ATerrain* Terrain, FVector Location
 
 	// Add meshes at each point generated
 	const TArray<FVector2D>& points = noise.GetPoints();
-	UInstancedStaticMeshComponent* component = nullptr;
+	UTerrainFoliage* foliage = nullptr;
 	for (int32 i = 0; i < points.Num(); ++i)
 	{
 		// Set the location of the mesh
@@ -41,14 +41,14 @@ void UTerrainFoliageGroup::AddFoliageCluster(ATerrain* Terrain, FVector Location
 			location.Z = Terrain->GetHeight(location);
 
 			// Pick a new mesh
-			if (!MatchClusters || component == nullptr)
+			if (!MatchClusters || foliage == nullptr )
 			{
-				component = GetRandomComponent(Terrain, random_seed(rando));
+				foliage = GetRandomFoliage(random_seed(rando));
 			}
 
 			// Set the rotation to match the terrain normal
 			FRotator rotation;
-			if (AlignToNormal)
+			if (foliage->AlignToNormal)
 			{
 				rotation = UKismetMathLibrary::MakeRotFromZ(Terrain->GetNormal(location));
 			}
@@ -57,16 +57,16 @@ void UTerrainFoliageGroup::AddFoliageCluster(ATerrain* Terrain, FVector Location
 			FTransform transform;
 			transform.SetLocation(location);
 			transform.SetRotation(rotation.Quaternion());
-			component->AddInstance(transform);
+			Terrain->FindInstancedMesh(foliage->Mesh)->AddInstance(transform);
 		}
 	}
 }
 
-void UTerrainFoliageGroup::AddFoliageUnit(ATerrain* Terrain, FVector Location, uint32 Seed) const
+void UTerrainFoliageSpawner::AddFoliageUnit(ATerrain* Terrain, FVector Location, uint32 Seed) const
 {
-	UHierarchicalInstancedStaticMeshComponent* components = GetRandomComponent(Terrain, Seed);
+	UTerrainFoliage* foliage = GetRandomFoliage(Seed);
 
-	if (components != nullptr)
+	if (foliage != nullptr)
 	{
 		// Set the rotation
 		FVector location = Location;
@@ -74,7 +74,7 @@ void UTerrainFoliageGroup::AddFoliageUnit(ATerrain* Terrain, FVector Location, u
 		
 		// Set the rotation
 		FRotator rotation;
-		if (AlignToNormal)
+		if (foliage->AlignToNormal)
 		{
 			rotation = UKismetMathLibrary::MakeRotFromZ(Terrain->GetNormal(location));
 		}
@@ -83,17 +83,17 @@ void UTerrainFoliageGroup::AddFoliageUnit(ATerrain* Terrain, FVector Location, u
 		FTransform transform;
 		transform.SetLocation(location);
 		transform.SetRotation(rotation.Quaternion());
-		components->AddInstance(transform);
+		Terrain->FindInstancedMesh(foliage->Mesh)->AddInstance(transform);
 	}
 }
 
-UHierarchicalInstancedStaticMeshComponent* UTerrainFoliageGroup::GetRandomComponent(ATerrain* Terrain, uint32 Seed) const
+UTerrainFoliage* UTerrainFoliageSpawner::GetRandomFoliage(uint32 Seed) const
 {
 	// Calculate the total weight of all the meshes
 	int32 total_weight = 0;
-	for (int32 i = 0; i < Meshes.Num(); ++i)
+	for (int32 i = 0; i < Foliage.Num(); ++i)
 	{
-		total_weight += Meshes[i].Weight;
+		total_weight += Foliage[i].Weight;
 	}
 
 	if (total_weight > 0)
@@ -105,20 +105,13 @@ UHierarchicalInstancedStaticMeshComponent* UTerrainFoliageGroup::GetRandomCompon
 
 		// Find which component corresponds to the random index
 		UStaticMesh* mesh = nullptr;
-		for (int32 i = 0; i < Meshes.Num(); ++i)
+		for (int32 i = 0; i < Foliage.Num(); ++i)
 		{
-			n -= Meshes[i].Weight;
+			n -= Foliage[i].Weight;
 			if (n <= 0)
 			{
-				mesh = Meshes[i].Mesh;
-				break;
+				return Foliage[i].Asset;
 			}
-		}
-
-		if (mesh != nullptr)
-		{
-			// Find an instanced mesh for the chosen mesh
-			return Terrain->FindInstancedMesh(mesh);
 		}
 	}
 

@@ -20,7 +20,9 @@ void FDynamicTerrainEditorModule::StartupModule()
 	// Register the foliage asset factory
 	IAssetTools& asset_tools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
 	TerrainAssetCategory = asset_tools.RegisterAdvancedAssetCategory(FName("TerrainAssetCategory"), LOCTEXT("AssetCategoryName", "Terrain"));
-	TSharedRef<IAssetTypeActions> action = MakeShareable(new FAssetTypeActions_TerrainFoliageFactory());
+	TSharedRef<IAssetTypeActions> action = MakeShareable(new FAssetTypeActions_TerrainFoliageSpawnerFactory());
+	asset_tools.RegisterAssetTypeActions(action);
+	action = MakeShareable(new FAssetTypeActions_TerrainFoliageFactory());
 	asset_tools.RegisterAssetTypeActions(action);
 
 	// Register the terrain editor mode
@@ -37,7 +39,7 @@ void FDynamicTerrainEditorModule::ShutdownModule()
 
 	// Remove new asset types
 	/*IAssetTools& asset_tools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
-	TWeakPtr<IAssetTypeActions> action = asset_tools.GetAssetTypeActionsForClass(UTerrainFoliageGroup::StaticClass());
+	TWeakPtr<IAssetTypeActions> action = asset_tools.GetAssetTypeActionsForClass(UTerrainFoliageSpawner::StaticClass());
 	if (action.IsValid())
 	{
 		asset_tools.UnregisterAssetTypeActions(action.Pin().ToSharedRef());

@@ -47,8 +47,10 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		void TestGenerator(
-			UPARAM(meta = (Default=4)) int32 MountainFrequency,
-			UPARAM(meta = (Default=256)) float MaxHeight);
+			UPARAM(meta = (Default = 2)) int32 BaseFrequency,
+			UPARAM(meta = (Default = 8)) int32 ElevationFrequency,
+			UPARAM(meta = (Default = 50)) int32 DetailFrequency,
+			UPARAM(meta = (Default = 256)) float MaxHeight);
 
 protected:
 	/// Map Generator Components ///
