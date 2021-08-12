@@ -3,6 +3,7 @@
 #include "Terrain.h"
 
 #include "Engine.h"
+#include "SceneView.h"
 #include "Materials/Material.h"
 
 FTerrainComponentSceneProxy::FTerrainComponentSceneProxy(UTerrainComponent* Component) : FPrimitiveSceneProxy(Component), VertexFactory(GetScene().GetFeatureLevel(), "FTerrainComponentSceneProxy"), MaterialRelevance(Component->GetMaterialRelevance(GetScene().GetFeatureLevel()))
@@ -85,7 +86,7 @@ void FTerrainComponentSceneProxy::GetDynamicMeshElements(const TArray< const FSc
 			float screen_scale = cvars.StaticMeshLODDistanceScale != 0.0f ? 1.0f / cvars.StaticMeshLODDistanceScale : 1.0f;
 
 			uint32 LOD = 0;
-			float radius = ComputeBoundsScreenRadiusSquared(bounds.Origin, bounds.SphereRadius, *view) * screen_scale * screen_scale * lod_view.LODDistanceFactorSquared;
+			float radius = ComputeBoundsScreenRadiusSquared(bounds.Origin, bounds.SphereRadius, *view) * screen_scale * screen_scale * lod_view.LODDistanceFactor * lod_view.LODDistanceFactor;
 			for (uint32 i = 0; i < MaxLOD; ++i)
 			{
 				if (FMath::Square(LODScales[i] * 0.5) > radius)

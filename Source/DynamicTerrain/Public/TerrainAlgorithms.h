@@ -111,6 +111,7 @@ public:
 class PoissonPointNoise : public PointNoise
 {
 public:
+	PoissonPointNoise() {};
 	// Generate random noise in a rectangle
 	PoissonPointNoise(uint32 SpaceWidth, uint32 SpaceHeight, float SampleRadius, uint32 NumPoints, uint32 Seed);
 	// Generate random noise in a circle
@@ -121,8 +122,12 @@ public:
 	PoissonPointNoise(uint32 SpaceRadius, float SampleRadius, uint32 Seed);
 	virtual ~PoissonPointNoise() {};
 
-	virtual inline FVector2D GetNearest(FVector2D Location, float SearchRadius) const;
-	virtual inline float GetNearestDistance(FVector2D Location, float SearchRadius) const;
+	// Check to see if the given point is far enough away from other points
+	virtual inline bool CheckPoint(FVector2D Location, float SearchRadius) const;
+	// Get the nearest point to a given point within a limited distance, returns an invalid point if no point is found
+	virtual inline FVector2D GetNearestConstrained(FVector2D Location, float SearchRadius) const;
+	// Get the distance from the nearest point to the given point within a limited radius
+	virtual inline float GetNearestDistanceConstrained(FVector2D Location, float SearchRadius) const;
 
 protected:
 	// Create the sorting grid
@@ -136,4 +141,32 @@ protected:
 	uint32 GridWidth, GridHeight;
 	// A grid to store points for nearest neighbor searches
 	TArray<int32> SortingGrid;
+};
+
+class UTerrainFoliage;
+struct FWeightedFoliage;
+
+// Poisson sampled points sized according to a set of foliage
+class FoliagePoissonNoise : public PoissonPointNoise
+{
+public:
+	// Generate random points in a rectangle
+	FoliagePoissonNoise(TArray<FWeightedFoliage> FoliageSet, uint32 SpaceWidth, uint32 SpaceHeight, uint32 NumPoints, uint32 Seed);
+	virtual ~FoliagePoissonNoise() {};
+
+	// Check the placement of a random foliage
+	virtual inline bool CheckFoliagePoint(FVector2D Location, UTerrainFoliage* FoliageSample) const;
+
+protected:
+	// Pick a random foliage asset
+	inline UTerrainFoliage* GetRandomFoliage(uint32 Seed) const;
+
+	// The largest shade radius
+	float MaxShade;
+	// The largest safe radius
+	float MaxRadius;
+	// The foliage used to generate foliage
+	TArray<FWeightedFoliage> Foliage;
+	// The foliage used for each point
+	TArray<UTerrainFoliage*> FoliageInstances;
 };

@@ -1,6 +1,8 @@
 #include "TerrainAlgorithms.h"
+#include "TerrainFoliage.h"
 
 #include <random>
+#include <limits>
 
 constexpr float pi = 3.141592f;
 
@@ -688,7 +690,7 @@ PoissonPointNoise::PoissonPointNoise(uint32 SpaceWidth, uint32 SpaceHeight, floa
 		{
 			// Create a new random point and test it
 			FVector2D point(x_dist(rando), y_dist(rando));
-			if (GetNearestDistance(point, SampleRadius) > SampleRadius)
+			if (CheckPoint(point, SampleRadius))
 			{
 				// Add the point
 				Points.Add(point);
@@ -724,7 +726,7 @@ PoissonPointNoise::PoissonPointNoise(uint32 SpaceRadius, float SampleRadius, uin
 			float a = angle(rando);
 			float d = SpaceRadius * FMath::Sqrt(dist(rando));
 			FVector2D point(d * FMath::Cos(a) + SpaceRadius, d * FMath::Sin(a) + SpaceRadius);
-			if (GetNearestDistance(point, SampleRadius) > SampleRadius)
+			if (CheckPoint(point, SampleRadius))
 			{
 				// Add the point
 				Points.Add(point);
@@ -773,7 +775,7 @@ PoissonPointNoise::PoissonPointNoise(uint32 SpaceWidth, uint32 SpaceHeight, floa
 			// Check the point and add it if it is valid
 			if (point.X > 0 && point.Y > 0 && point.X < Width && point.Y < Height)
 			{
-				if (GetNearestDistance(point, SampleRadius) > SampleRadius)
+				if (CheckPoint(point, SampleRadius))
 				{
 					Points.Add(point);
 					SortPoint(Points.Num() - 1);
@@ -822,7 +824,7 @@ PoissonPointNoise::PoissonPointNoise(uint32 SpaceRadius, float SampleRadius, uin
 			// Check the point and add it if it is valid
 			if (FVector2D::DistSquared(center, point) < SpaceRadius * SpaceRadius)
 			{
-				if (GetNearestDistance(point, SampleRadius) > SampleRadius)
+				if (CheckPoint(point, SampleRadius))
 				{
 					Points.Add(point);
 					SortPoint(Points.Num() - 1);
@@ -832,13 +834,46 @@ PoissonPointNoise::PoissonPointNoise(uint32 SpaceRadius, float SampleRadius, uin
 	}
 }
 
-FVector2D PoissonPointNoise::GetNearest(FVector2D Location, float SearchRadius) const
+bool PoissonPointNoise::CheckPoint(FVector2D Location, float SearchRadius) const
+{
+	// Calculate the number of grid cells to search
+	uint32 GridRadius = (uint32)(SearchRadius / GridBound) + 1;
+
+	int32 minx = Location.X / GridBound - GridRadius;
+	int32 miny = Location.Y / GridBound - GridRadius;
+
+	// Check every cell around the point
+	for (uint32 y = 0; y < GridRadius * 2 + 1; ++y)
+	{
+		for (uint32 x = 0; x < GridRadius * 2 + 1; ++x)
+		{
+			// Get the cell's location in the point array
+			int32 cell = minx + x + (miny + y) * GridWidth;
+			if (cell > -1 && cell < SortingGrid.Num())
+			{
+				if (SortingGrid[cell] > -1)
+				{
+					// Check the distance to the point
+					float distance = FVector2D::DistSquared(Location, Points[SortingGrid[cell]]);
+					if (distance < SearchRadius)
+					{
+						return false;
+					}
+				}
+			}
+		}
+	}
+
+	return true;
+}
+
+FVector2D PoissonPointNoise::GetNearestConstrained(FVector2D Location, float SearchRadius) const
 {
 	// Calculate the number of grid cells to search and the maximum possible distance to return
 	uint32 GridRadius = (uint32)(SearchRadius / GridBound) + 1;
 	float nearest_distance = SearchRadius * GridRadius + 1;
 	nearest_distance *= nearest_distance;
-	FVector2D nearest_point;
+	FVector2D nearest_point(-1.0f, -1.0f);
 
 	int32 minx = Location.X / GridBound - GridRadius;
 	int32 miny = Location.Y / GridBound - GridRadius;
@@ -869,12 +904,11 @@ FVector2D PoissonPointNoise::GetNearest(FVector2D Location, float SearchRadius) 
 	return nearest_point;
 }
 
-float PoissonPointNoise::GetNearestDistance(FVector2D Location, float SearchRadius) const
+float PoissonPointNoise::GetNearestDistanceConstrained(FVector2D Location, float SearchRadius) const
 {
-	// Calculate the number of grid cells to search and the maximum possible distance to return
+	// Calculate the number of grid cells to search
 	uint32 GridRadius = (uint32)(SearchRadius / GridBound) + 1;
-	float nearest_distance = SearchRadius * GridRadius + 1;
-	nearest_distance *= nearest_distance;
+	float nearest_distance = SearchRadius * SearchRadius;
 
 	int32 minx = Location.X / GridBound - GridRadius;
 	int32 miny = Location.Y / GridBound - GridRadius;
@@ -922,4 +956,139 @@ void PoissonPointNoise::SortPoint(int32 PointIndex)
 	uint32 x = Points[PointIndex].X / GridBound;
 	uint32 y = Points[PointIndex].Y / GridBound;
 	SortingGrid[x + y * GridWidth] = PointIndex;
+}
+
+FoliagePoissonNoise::FoliagePoissonNoise(TArray<FWeightedFoliage> FoliageSet, uint32 SpaceWidth, uint32 SpaceHeight, uint32 NumPoints, uint32 Seed)
+{
+	Foliage = FoliageSet;
+
+	Width = SpaceWidth;
+	Height = SpaceHeight;
+
+	// Find the smallest and largest radii in the foliage set
+	float smallest = 1000000.0f;
+	for (int32 i = 0; i < Foliage.Num(); ++i)
+	{
+		if (Foliage[i].Asset->SafeDistance < smallest)
+		{
+			smallest = Foliage[i].Asset->SafeDistance;
+		}
+		if (Foliage[i].Asset->SafeDistance > MaxRadius)
+		{
+			MaxRadius = Foliage[i].Asset->SafeDistance;
+		}
+		if (Foliage[i].Asset->ShadeDistance > MaxShade)
+		{
+			MaxShade = Foliage[i].Asset->SafeDistance;
+		}
+	}
+
+	// Resize the sorting grid
+	InitializeSortingGrid(smallest);
+
+	// Set up rng
+	std::default_random_engine rando(Seed);
+	std::uniform_real_distribution<float> x_dist(0.0f, (float)Width);
+	std::uniform_real_distribution<float> y_dist(0.0f, (float)Height);
+	std::uniform_int_distribution<uint32> random_seed(0, std::numeric_limits<uint32>::max());
+
+	// Create an initial point
+	FVector2D start(x_dist(rando), y_dist(rando));
+
+	Points.Reserve(NumPoints);
+	FoliageInstances.Reserve(NumPoints);
+	for (uint32 i = 0; i < NumPoints; ++i)
+	{
+		// Try multiple samples for each point
+		for (uint32 j = 0; j < num_samples; ++j)
+		{
+			// Choose a random foliage
+			UTerrainFoliage* foliage = GetRandomFoliage(random_seed(rando));
+
+			// Create a new random point and test it
+			FVector2D point(x_dist(rando), y_dist(rando));
+			if (CheckFoliagePoint(point, foliage))
+			{
+				FoliageInstances.Add(foliage);
+				Points.Add(point);
+				SortPoint(Points.Num() - 1);
+
+				break;
+			}
+		}
+	}
+}
+
+bool FoliagePoissonNoise::CheckFoliagePoint(FVector2D Location, UTerrainFoliage* FoliageSample) const
+{
+	/// TODO: Make sample object respect the safe space of other foliage objects
+	float radius;
+	if (FoliageSample->GrowInShade)
+	{
+		radius = MaxRadius;
+	}
+	else
+	{
+		radius = MaxShade;
+	}
+
+	// Calculate the number of grid cells to search
+	uint32 GridRadius = (uint32)(radius / GridBound) + 1;
+
+	int32 minx = Location.X / GridBound - GridRadius;
+	int32 miny = Location.Y / GridBound - GridRadius;
+
+	// Check every cell around the point
+	for (uint32 y = 0; y < GridRadius * 2 + 1; ++y)
+	{
+		for (uint32 x = 0; x < GridRadius * 2 + 1; ++x)
+		{
+			// Get the cell's location in the point array
+			int32 cell = minx + x + (miny + y) * GridWidth;
+			if (cell > -1 && cell < SortingGrid.Num())
+			{
+				if (SortingGrid[cell] > -1)
+				{
+					// Check the distance to the point
+					float distance = FVector2D::DistSquared(Location, Points[SortingGrid[cell]]);
+					if (distance < radius)
+					{
+						return false;
+					}
+				}
+			}
+		}
+	}
+
+	return true;
+}
+
+UTerrainFoliage* FoliagePoissonNoise::GetRandomFoliage(uint32 Seed) const
+{
+	// Calculate the total weight of all the meshes
+	int32 total_weight = 0;
+	for (int32 i = 0; i < Foliage.Num(); ++i)
+	{
+		total_weight += Foliage[i].Weight;
+	}
+
+	if (total_weight > 0)
+	{
+		// Get a random index value
+		std::default_random_engine rando(Seed);
+		std::uniform_int_distribution<int32> dist(1, total_weight);
+		int32 n = dist(rando);
+
+		// Find which component corresponds to the random index
+		for (int32 i = 0; i < Foliage.Num(); ++i)
+		{
+			n -= Foliage[i].Weight;
+			if (n <= 0)
+			{
+				return Foliage[i].Asset;
+			}
+		}
+	}
+
+	return Foliage.Last().Asset;
 }

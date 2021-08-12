@@ -104,7 +104,6 @@ UTerrainFoliage* UTerrainFoliageSpawner::GetRandomFoliage(uint32 Seed) const
 		int32 n = dist(rando);
 
 		// Find which component corresponds to the random index
-		UStaticMesh* mesh = nullptr;
 		for (int32 i = 0; i < Foliage.Num(); ++i)
 		{
 			n -= Foliage[i].Weight;
